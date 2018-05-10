@@ -20,6 +20,8 @@ CSerialDongle::CSerialDongle()
 , serial_rx_thread_p(nullptr)
 {
 	DongleRxDataCallBackFunc = nullptr;
+	m_dwExpectedDongleRead = AMBE3000_PCM_BYTESINFRAME;
+	//m_dwExpectedDongleRead = AMBE3000_AMBE_BYTESINFRAME
 	memset(thePCMFrameFldSamples, 0, THEPCMFRAMEFLDSAMPLESLENGTH);
 	dataType = 0;
 	m_hComm = 0;
@@ -100,14 +102,32 @@ int	CSerialDongle::open_dongle(const char *lpsz_Device)
 		//发起读请求
 
 		////设置异步通知方式
-		////用线程回调
-		w_cbp.aio_sigevent.sigev_notify = SIGEV_THREAD;
-		//设置回调函数
-		w_cbp.aio_sigevent.sigev_notify_function = aio_write_completion_hander;
+		/*用信号通知*/
+		struct sigaction sig_act;
+		//设置信号处理函数
+		sigemptyset(&sig_act.sa_mask);
+		sig_act.sa_flags = SA_SIGINFO;
+		sig_act.sa_sigaction = aio_write_completion_hander;
+
+		//连接AIO请求和信号处理函数
+		w_cbp.aio_sigevent.sigev_notify = SIGEV_SIGNAL;
+		//设置产生的信号
+		w_cbp.aio_sigevent.sigev_signo = SIGIO;
 		//传入aiocb 结构体
 		w_cbp.aio_sigevent.sigev_value.sival_ptr = &w_cbp;
-		//设置属性为默认
-		w_cbp.aio_sigevent.sigev_notify_attributes = NULL;
+		
+		//将信号与信号处理函数绑定
+		sigaction(SIGIO, &sig_act, NULL);
+
+
+		////用线程回调
+		//w_cbp.aio_sigevent.sigev_notify = SIGEV_THREAD;
+		////设置回调函数
+		//w_cbp.aio_sigevent.sigev_notify_function = aio_write_completion_hander;
+		////传入aiocb 结构体
+		//w_cbp.aio_sigevent.sigev_value.sival_ptr = &w_cbp;
+		////设置属性为默认
+		//w_cbp.aio_sigevent.sigev_notify_attributes = NULL;
 
 	}
 
@@ -434,38 +454,49 @@ int CSerialDongle::SerialTxThreadFunc()
 	return ret;
 }
 
-void CSerialDongle::aio_write_completion_hander(sigval_t sigval)//must be static since is thread
+void CSerialDongle::aio_write_completion_hander(int signo, siginfo_t *info, void *context)
+//void CSerialDongle::aio_write_completion_hander(sigval_t sigval)//must be static since is thread
 {
 
 	struct aiocb  *req;
 	int           ret;
 
-	log_debug("aio_write complete:\n");
-	//获取aiocb 结构体的信息
-	req = (struct aiocb*) sigval.sival_ptr;
-
-	/*AIO请求完成？*/
-	if ((ret = aio_error(req)) == 0)
+	if (info->si_signo == SIGIO)//确定是我们需要的信号
 	{
-		ret = aio_return(req);
-		log_debug("aio_write :%d bytes\n", ret);
-		if (pThis->fWaitingOnPCM){
-			pThis->m_PCMBufTail = (pThis->m_PCMBufTail + 1) & MAXDONGLEPCMFRAMESMASK;
-		}
-		if (pThis->fWaitingOnAMBE){
-			pThis->m_AMBEBufTail = (pThis->m_AMBEBufTail + 1) & MAXDONGLEAMBEFRAMESMASK;
-		}
-		//m_AMBEBufTail = (m_AMBEBufTail + 1) & MAXDONGLEAMBEFRAMESMASK;//环形buff自动递增
+	
+		//log_debug("aio_write complete:\n");
+		//获取aiocb 结构体的信息
+		//req = (struct aiocb*) sigval.sival_ptr;
+		req = (struct aiocb*) info->si_value.sival_ptr;
 
-		pThis->fWaitingOnWrite = false;
-		pThis->fWaitingOnPCM = false;
-		pThis->fWaitingOnAMBE = false;
+		/*AIO请求完成？*/
+		if ((ret = aio_error(req)) == 0)
+		{
+			log_debug("\r\n\r\n");
+			log_debug("aio_write complete.\n");
+			ret = aio_return(req);
+			log_debug("aio_write :%d bytes\n", ret);
+			if (pThis->fWaitingOnPCM){
+				pThis->m_PCMBufTail = (pThis->m_PCMBufTail + 1) & MAXDONGLEPCMFRAMESMASK;
+			}
+			if (pThis->fWaitingOnAMBE){
+				pThis->m_AMBEBufTail = (pThis->m_AMBEBufTail + 1) & MAXDONGLEAMBEFRAMESMASK;
+			}
+			//m_AMBEBufTail = (m_AMBEBufTail + 1) & MAXDONGLEAMBEFRAMESMASK;//环形buff自动递增
+
+			pThis->fWaitingOnWrite = false;
+			pThis->fWaitingOnPCM = false;
+			pThis->fWaitingOnAMBE = false;
+		}
+		else
+		{
+			log_debug("AIO write uncomplete:%d\n", ret);
+		}
 	}
 	else
 	{
-		log_debug("AIO write uncomplete:%d\n", ret);
+		log_warning("note,other singal:%d\n", info->si_signo);
 	}
-
 
 }
 void CSerialDongle::set_rx_serial_event()
