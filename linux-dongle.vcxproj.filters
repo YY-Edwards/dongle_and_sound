@@ -1,0 +1,108 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="源文件">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="头文件">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;hm;inl;inc;xsd</Extensions>
+    </Filter>
+    <Filter Include="资源文件">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="PublicInterface">
+      <UniqueIdentifier>{751f1a03-dfe9-4aa4-a11a-3d29c7938fee}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="DongleAndAlsa">
+      <UniqueIdentifier>{9ea6fa0b-c3e2-4fc3-b868-9185fc7d15c7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="PublicInterface\Fifoqueue">
+      <UniqueIdentifier>{69a05c0e-01f2-4ca0-b360-6a77bc3104ad}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="PublicInterface\Hotplug">
+      <UniqueIdentifier>{65d08ac7-3584-478c-a2e8-64c6f2c6ce2d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="PublicInterface\SocketWrap">
+      <UniqueIdentifier>{06b92324-2511-401f-b227-9588ea61e528}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="PublicInterface\SynInterface">
+      <UniqueIdentifier>{ac1095d3-3731-4036-ac32-218dd21bd8b5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="DongleAndAlsa\SerialDongle">
+      <UniqueIdentifier>{ba573f2c-0b0d-4675-ac91-d4e1e2f8433c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="DongleAndAlsa\AudioAlsa">
+      <UniqueIdentifier>{f35e44de-a5e8-46a5-854d-67d28f0c4aae}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="DongleAndAlsa\AudioAlsa\Usart">
+      <UniqueIdentifier>{ddb4b4c8-fc0c-4f0f-a731-fdbede172f4e}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\main.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="src\StartDongleAndAlsa\SerialDongle\Usart\usartwrap.cpp">
+      <Filter>DongleAndAlsa\AudioAlsa\Usart</Filter>
+    </ClCompile>
+    <ClCompile Include="src\PublicInterface\SynInterface\syninterface.cpp">
+      <Filter>PublicInterface\SynInterface</Filter>
+    </ClCompile>
+    <ClCompile Include="src\PublicInterface\SocketWrap\socketwrap.cpp">
+      <Filter>PublicInterface\SocketWrap</Filter>
+    </ClCompile>
+    <ClCompile Include="src\PublicInterface\Hotplug\hotplug.cpp">
+      <Filter>PublicInterface\Hotplug</Filter>
+    </ClCompile>
+    <ClCompile Include="src\PublicInterface\FifoQueue\fifoqueue.cpp">
+      <Filter>PublicInterface\Fifoqueue</Filter>
+    </ClCompile>
+    <ClCompile Include="src\StartDongleAndAlsa\SerialDongle\serialdongle.cpp">
+      <Filter>DongleAndAlsa\SerialDongle</Filter>
+    </ClCompile>
+    <ClCompile Include="src\StartDongleAndAlsa\startdongleandalsa.cpp">
+      <Filter>DongleAndAlsa</Filter>
+    </ClCompile>
+    <ClCompile Include="src\StartDongleAndAlsa\AudioAlsa\audioalsa.cpp">
+      <Filter>DongleAndAlsa\AudioAlsa</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="src\log.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="src\config.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="src\StartDongleAndAlsa\SerialDongle\Usart\usartwrap.h">
+      <Filter>DongleAndAlsa\AudioAlsa\Usart</Filter>
+    </ClInclude>
+    <ClInclude Include="src\PublicInterface\SynInterface\syninterface.h">
+      <Filter>PublicInterface\SynInterface</Filter>
+    </ClInclude>
+    <ClInclude Include="src\PublicInterface\SocketWrap\socketwrap.h">
+      <Filter>PublicInterface\SocketWrap</Filter>
+    </ClInclude>
+    <ClInclude Include="src\PublicInterface\Hotplug\hotplug.h">
+      <Filter>PublicInterface\Hotplug</Filter>
+    </ClInclude>
+    <ClInclude Include="src\PublicInterface\FifoQueue\fifoqueue.h">
+      <Filter>PublicInterface\Fifoqueue</Filter>
+    </ClInclude>
+    <ClInclude Include="src\StartDongleAndAlsa\SerialDongle\ambe3000.h">
+      <Filter>DongleAndAlsa\SerialDongle</Filter>
+    </ClInclude>
+    <ClInclude Include="src\StartDongleAndAlsa\SerialDongle\serialdongle.h">
+      <Filter>DongleAndAlsa\SerialDongle</Filter>
+    </ClInclude>
+    <ClInclude Include="src\StartDongleAndAlsa\startdongleandalsa.h">
+      <Filter>DongleAndAlsa</Filter>
+    </ClInclude>
+    <ClInclude Include="src\StartDongleAndAlsa\AudioAlsa\audioalsa.h">
+      <Filter>DongleAndAlsa\AudioAlsa</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>

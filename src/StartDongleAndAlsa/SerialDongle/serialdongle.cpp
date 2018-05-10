@@ -1,0 +1,846 @@
+
+
+// SerialDongle.cpp: implementation of the CSerialDongle class.
+//
+//////////////////////////////////////////////////////////////////////
+
+#include "serialdongle.h"
+
+CSerialDongle *CSerialDongle::pThis = NULL;
+
+//////////////////////////////////////////////////////////////////////
+// Construction/Destruction
+//////////////////////////////////////////////////////////////////////
+
+CSerialDongle::CSerialDongle()
+:m_PleaseStopSerial(false)
+, tx_serial_event_cond(nullptr)
+, rx_serial_event_cond(nullptr)
+, serial_tx_thread_p(nullptr)
+, serial_rx_thread_p(nullptr)
+{
+	DongleRxDataCallBackFunc = nullptr;
+	memset(thePCMFrameFldSamples, 0, THEPCMFRAMEFLDSAMPLESLENGTH);
+	dataType = 0;
+	m_hComm = 0;
+	pThis = this;
+	log_debug("New: CSerialDongle\n");
+}
+
+CSerialDongle::~CSerialDongle()
+{
+	close_dongle();
+	log_debug("Destory: CSerialDongle\n");
+}
+
+int	CSerialDongle::open_dongle(const char *lpsz_Device)
+{
+	m_ParserState = FIND_START;
+	m_RxMsgLength = 0;
+	m_RxMsgIndex = 0;
+	m_AMBEBufHead = 0;
+	m_AMBEBufTail = 0;
+	m_PCMBufHead = 0;
+	m_PCMBufTail = 0;
+	m_bPleasePurgeAMBE = false;
+	m_bPleasePurgePCM = false;
+
+	fWaitingOnWrite = false;
+	fWaitingOnPCM = false;
+	fWaitingOnAMBE = false;
+
+
+	auto ret = m_usartwrap.init_usart_config(lpsz_Device, DONGLEBAUDRATE, DONGLEBITS, DONGLESTOP, DONGLEPARITY);
+	if (ret<0)
+	{
+		log_warning("open usart failed\n");
+		return ret;
+	}
+	else
+	{
+		log_debug("open usart okay,fd:%d\n", ret);
+		m_hComm = ret;
+
+		////填充struct aiocb 结构体 
+		bzero(&r_cbp, sizeof(r_cbp));
+		bzero(&w_cbp, sizeof(w_cbp));
+
+		////read-aio
+		////指定缓冲区
+		r_cbp.aio_buf = m_DongleRxBuffer;
+		//r_cbp.aio_buf = (volatile void*)malloc(AIO_BUFSIZE + 1);
+		//请求读取的字节数
+		//r_cbp.aio_nbytes = AIO_BUFSIZE;
+		//文件偏移
+		r_cbp.aio_offset = 0;
+		//读取的文件描述符
+		r_cbp.aio_fildes = m_hComm;
+		//发起读请求
+
+		////设置异步通知方式
+		////用线程回调
+		//r_cbp.aio_sigevent.sigev_notify = SIGEV_THREAD;
+		////设置回调函数
+		//r_cbp.aio_sigevent.sigev_notify_function = aio_read_completion_hander;
+		////传入aiocb 结构体
+		//r_cbp.aio_sigevent.sigev_value.sival_ptr = &r_cbp;
+		////设置属性为默认
+		//r_cbp.aio_sigevent.sigev_notify_attributes = NULL;
+
+		////write-aio
+		////指定缓冲区
+		//w_cbp.aio_buf = m_PCM_CirBuff[m_PCMBufTail].All[0];
+		//w_cbp.aio_buf = (volatile void*)malloc(AIO_BUFSIZE + 1);
+		//请求读取的字节数
+		//w_cbp.aio_nbytes = AIO_BUFSIZE;
+		//文件偏移
+		w_cbp.aio_offset = 0;
+		//读取的文件描述符
+		w_cbp.aio_fildes = m_hComm;
+		//发起读请求
+
+		////设置异步通知方式
+		////用线程回调
+		w_cbp.aio_sigevent.sigev_notify = SIGEV_THREAD;
+		//设置回调函数
+		w_cbp.aio_sigevent.sigev_notify_function = aio_write_completion_hander;
+		//传入aiocb 结构体
+		w_cbp.aio_sigevent.sigev_value.sival_ptr = &w_cbp;
+		//设置属性为默认
+		w_cbp.aio_sigevent.sigev_notify_attributes = NULL;
+
+	}
+
+
+
+
+	tx_serial_event_cond = new MySynCond;
+	rx_serial_event_cond = new MySynCond;
+	//默认条件信号不触发
+	//reset_rx_serial_event();
+	//reset_tx_serial_event();
+
+	ret = CreateSerialRxThread();
+	ret = CreateSerialTxThread();
+
+
+	return ret;
+
+}
+
+void CSerialDongle::send_dongle_initialization(void)//send control packets
+{
+
+	/*
+	bool result;
+
+	m_DongleControlFrame.base.Sync     = AMBE3000_SYNC_BYTE;
+	m_DongleControlFrame.base.LengthH  = AMBE3000_CCP_MODE_LENGTHH;
+	m_DongleControlFrame.base.LengthL  = AMBE3000_CCP_MODE_LENGTHL;
+	m_DongleControlFrame.base.Type     = AMBE3000_CCP_TYPE_BYTE;
+	m_DongleControlFrame.base.empty[0] = AMBE3000_CCP_DCMODE;
+	m_DongleControlFrame.base.empty[1] = AMBE3000_CCP_MODE_NOISEH;
+	m_DongleControlFrame.base.empty[2] = AMBE3000_CCP_MODE_NOISEL;
+	m_DongleControlFrame.base.empty[3] = AMBE3000_PARITYTYPE_BYTE;
+	m_DongleControlFrame.base.empty[4] = CheckSum(&m_DongleControlFrame);
+	result = SendDVSIMsg(&m_DongleControlFrame);
+	*/
+
+
+}
+
+
+void CSerialDongle::close_dongle(void)
+{
+	log_debug("close dongle resource...\n");
+	SetThreadExitFlag();
+	auto ret = aio_cancel(m_hComm, NULL);
+	if (ret != AIO_CANCELED)
+		log_debug("aio_cancle:%d, errno:%d\n",ret, errno);
+
+	if (serial_tx_thread_p != nullptr)
+	{
+		set_tx_serial_event();
+		delete serial_tx_thread_p;
+		serial_tx_thread_p = nullptr;
+	}
+
+	if (serial_rx_thread_p != nullptr)
+	{
+		set_rx_serial_event();
+		delete serial_rx_thread_p;
+		serial_rx_thread_p = nullptr;
+	}
+
+	if (tx_serial_event_cond != nullptr)
+	{
+		delete tx_serial_event_cond;
+		tx_serial_event_cond = nullptr;
+	}
+
+	if (serial_rx_thread_p != nullptr)
+	{
+		delete tx_serial_event_cond;
+		tx_serial_event_cond = nullptr;
+	}
+	DongleRxDataCallBackFunc = nullptr;
+	m_hComm = 0;
+
+}
+
+int CSerialDongle::aio_read_file(struct aiocb *r_cbp_ptr, int fd, int size)
+{
+	//填充struct aiocb 结构体 
+	//bzero(&r_cbp, sizeof(r_cbp));
+
+	//read-aio
+	//请求读取的字节数
+	r_cbp_ptr->aio_nbytes = size;
+
+	//读取的文件描述符
+	r_cbp_ptr->aio_fildes = fd;
+
+	//read
+	auto ret = aio_read(r_cbp_ptr);
+	if (ret<0)
+	{
+		log_warning("aio_read failed:%d\n", errno);
+		//break;
+
+	}
+
+	return ret;
+	////设置异步通知方式
+	////用线程回调
+	//r_cbp.aio_sigevent.sigev_notify = SIGEV_THREAD;
+	////设置回调函数
+	//r_cbp.aio_sigevent.sigev_notify_function = aio_read_completion_hander;
+	////传入aiocb 结构体
+	//r_cbp.aio_sigevent.sigev_value.sival_ptr = &r_cbp;
+	////设置属性为默认
+	//r_cbp.aio_sigevent.sigev_notify_attributes = NULL;
+
+
+}
+
+int CSerialDongle::aio_write_file(struct aiocb *w_cbp_ptr, int fd, void *buff, int size)
+{
+	//write-aio
+	//请求读取的字节数
+	w_cbp_ptr->aio_buf = buff;
+
+	w_cbp_ptr->aio_nbytes = size;
+
+	//读取的文件描述符
+	w_cbp_ptr->aio_fildes = fd;
+
+	//read
+	auto ret = aio_write(w_cbp_ptr);
+	if (ret<0)
+	{
+		log_warning("aio_write failed:%d\n", errno);
+		//break;
+
+	}
+
+	return ret;
+
+
+}
+
+void CSerialDongle::purge_dongle(int flags)
+{
+	m_usartwrap.flush_dev(flags);
+}
+
+int CSerialDongle::CreateSerialRxThread()
+{
+
+	serial_rx_thread_p = new MyCreateThread(SerialRxThread, this);
+	if (serial_rx_thread_p != nullptr)return 0;
+	else
+	{
+		return -1;
+	}
+
+}
+
+int CSerialDongle::CreateSerialTxThread()
+{
+
+	serial_tx_thread_p = new MyCreateThread(SerialTxThread, this);
+	if (serial_tx_thread_p != nullptr)return 0;
+	else
+	{
+		return -1;
+	}
+
+}
+
+void *CSerialDongle::SerialRxThread(void* p)//must be static since is thread
+{
+
+	auto obj = (CSerialDongle*)p;
+	auto ret = 0;
+	if (obj!=NULL)
+		 ret = obj->SerialRxThreadFunc();
+
+	return (void *)ret;
+
+}
+int CSerialDongle::SerialRxThreadFunc()
+{
+	log_debug("SerialRxThreadFunc is running, pid:%ld", syscall(SYS_gettid));
+	int dwBytesConsumed;
+	int  AssembledCount;
+	auto read_nbytes = 0;
+	auto ret = 0;
+	auto dwImmediateExpectations = AMBE3000_PCM_BYTESINFRAME;
+	auto dwCurrentTimeout = 10;//ms
+	//auto dwImmediateExpectations = AMBE3000_AMBE_BYTESINFRAME;
+	//异步阻塞列表
+	struct aiocb*   aiocb_list[1];
+
+	do
+	{
+		//read
+		ret = aio_read_file(&r_cbp, m_hComm, dwImmediateExpectations);
+		if (ret < 0)break;
+
+		aiocb_list[0] = &r_cbp;
+		//阻塞，直到请求完成才会继续执行后面的语句
+		ret = aio_suspend((const struct aiocb* const*)aiocb_list, 1, NULL);
+		if (ret != 0)
+		{
+			log_warning("aio_suspend() ret:%d, errno:%d\n",ret, errno);
+			break;
+		}
+		if ((ret = aio_error(&r_cbp)) != 0)
+		{
+			log_debug("qio_error() ret:%d\n", ret);
+		}
+		//请求操作完成，获取返回值
+		ret = aio_return(&r_cbp);
+		if (ret > 0)
+		{
+			log_debug("dongle recv pcm:%d bytes\n", read_nbytes);
+			//assemble:注意是同步解析。如需要异步，则用环形队列作缓冲。
+			AssembledCount = AssembleMsg(read_nbytes, &dwBytesConsumed);
+
+		}
+
+		if (!m_PleaseStopSerial)
+		{
+			if (dwImmediateExpectations != m_dwExpectedDongleRead)//根据实际情况切换
+			{
+				dwImmediateExpectations = m_dwExpectedDongleRead;
+				purge_dongle(TCIFLUSH);
+				log_debug("switch read voice type:\n");
+			}
+		}
+
+		//read_nbytes = m_usartwrap.recv(&m_DongleRxBuffer, dwImmediateExpectations, dwCurrentTimeout);
+		//if (read_nbytes >= 0)
+		//{
+		//	log_debug("dongle recv pcm:%d bytes\n", read_nbytes);
+		//	//assemble:注意是同步解析。如需要异步，则用环形队列作缓冲。
+		//	AssembledCount = AssembleMsg(read_nbytes, &dwBytesConsumed);
+		//
+		//}
+		//else
+		//{
+		//	break;
+		//}
+
+	} while (!m_PleaseStopSerial);
+
+	log_debug("exit SerialRxThreadFunc: 0x%x\r\n", serial_rx_thread_p->GetPthreadID());
+	return ret;
+}
+void *CSerialDongle::SerialTxThread(void* p)//must be static since is thread
+{
+
+	auto obj = (CSerialDongle*)p;
+	auto ret = 0;
+	if (obj != NULL)
+		ret = obj->SerialTxThreadFunc();
+
+	return (void *)ret;
+
+}
+int CSerialDongle::SerialTxThreadFunc()
+{
+	log_debug("SerialTxThreadFunc is running, pid:%ld", syscall(SYS_gettid));
+	auto ret = 0;
+	int  snapPCMBufHead;
+	int  snapAMBEBufHead;
+	do
+	{
+		ret = tx_serial_event_cond->CondWait(0);
+
+		switch (ret)
+		{
+			case SERIAL_TIMEOUT:
+				log_warning("tx-timeout:should no happen,but must check!");
+				break;
+
+			case SERIAL_TICKLE:
+				//Something may be ready to send.
+				reset_tx_serial_event();
+				if (m_PleaseStopSerial){
+					return ret;
+				}
+				if (true == m_bPleasePurgeAMBE){
+					m_AMBEBufTail = m_AMBEBufHead;
+					m_bPleasePurgeAMBE = false;
+				}
+				if (true == m_bPleasePurgePCM){
+					m_PCMBufTail = m_PCMBufHead;
+					m_bPleasePurgePCM = false;
+				}
+
+				if (fWaitingOnWrite){//Previous write did not complete.
+					//Try some errorrecovery.
+					log_warning("Previous write did not complete!!!");
+					purge_dongle(TCOFLUSH);
+					fWaitingOnWrite = false;
+					fWaitingOnPCM = false;
+					fWaitingOnAMBE = false;
+					break;
+				}
+
+
+				//Previous write did not complete.
+				snapAMBEBufHead = m_AMBEBufHead;		//Try AMBE
+				if (snapAMBEBufHead != m_AMBEBufTail){  //AMBE to send
+					fWaitingOnAMBE = true;
+					fWaitingOnWrite = true;
+					log_debug("dongle send ambe buff:\n");
+					aio_write_file(&w_cbp, m_hComm, &(m_AMBE_CirBuff[m_AMBEBufTail].All[0]), AMBE3000_AMBE_BYTESINFRAME);
+					//m_usartwrap.send(&(m_AMBE_CirBuff[m_AMBEBufTail].All[0]), AMBE3000_AMBE_BYTESINFRAME);
+					//考虑串口是否已将数据发送完成
+					//m_AMBEBufTail = (m_AMBEBufTail + 1) & MAXDONGLEAMBEFRAMESMASK;//环形buff自动递增
+				}
+				break;
+
+			default:
+				break;
+		}//End of Event Switch.
+
+	} while (!m_PleaseStopSerial);
+
+	log_debug("exit SerialTxThreadFunc: 0x%x\r\n", serial_tx_thread_p->GetPthreadID());
+	return ret;
+}
+
+void CSerialDongle::aio_write_completion_hander(sigval_t sigval)//must be static since is thread
+{
+
+	struct aiocb  *req;
+	int           ret;
+
+	log_debug("aio_write complete:\n");
+	//获取aiocb 结构体的信息
+	req = (struct aiocb*) sigval.sival_ptr;
+
+	/*AIO请求完成？*/
+	if ((ret = aio_error(req)) == 0)
+	{
+		ret = aio_return(req);
+		log_debug("aio_write :%d bytes\n", ret);
+		if (pThis->fWaitingOnPCM){
+			pThis->m_PCMBufTail = (pThis->m_PCMBufTail + 1) & MAXDONGLEPCMFRAMESMASK;
+		}
+		if (pThis->fWaitingOnAMBE){
+			pThis->m_AMBEBufTail = (pThis->m_AMBEBufTail + 1) & MAXDONGLEAMBEFRAMESMASK;
+		}
+		//m_AMBEBufTail = (m_AMBEBufTail + 1) & MAXDONGLEAMBEFRAMESMASK;//环形buff自动递增
+
+		pThis->fWaitingOnWrite = false;
+		pThis->fWaitingOnPCM = false;
+		pThis->fWaitingOnAMBE = false;
+	}
+	else
+	{
+		log_debug("AIO write uncomplete:%d\n", ret);
+	}
+
+
+}
+void CSerialDongle::set_rx_serial_event()
+{
+	if (rx_serial_event_cond != nullptr)
+	{
+		rx_serial_event_cond->CondTrigger(false);
+	}
+
+}
+void CSerialDongle::reset_rx_serial_event()
+{
+	if (rx_serial_event_cond != nullptr)
+	{
+		rx_serial_event_cond->Clear_Trigger_Flag();
+	}
+
+}
+
+void CSerialDongle::set_tx_serial_event()
+{
+
+	if (tx_serial_event_cond != nullptr)
+	{
+		tx_serial_event_cond->CondTrigger(false);
+		log_debug("timer set write event:\n");
+	}
+
+}
+void CSerialDongle::reset_tx_serial_event()
+{
+	if (tx_serial_event_cond != nullptr)
+	{
+		tx_serial_event_cond->Clear_Trigger_Flag();
+	}
+
+
+}
+
+void CSerialDongle::SetDongleRxDataCallBack(void(*Func)(void *ptr, short ptr_len))
+{
+	DongleRxDataCallBackFunc = Func;
+}
+
+
+//Called from Net Thread.
+tAMBEFrame* CSerialDongle::GetFreeAMBEBuffer(void)
+{
+	tAMBEFrame* pAMBEFrame;
+
+	//pre-supply header.
+	pAMBEFrame = (tAMBEFrame*)(&(m_AMBE_CirBuff[m_AMBEBufHead]));
+	pAMBEFrame->fld.Sync = AMBE3000_SYNC_BYTE;
+	pAMBEFrame->fld.LengthH = AMBE3000_AMBE_LENGTH_HBYTE;
+	pAMBEFrame->fld.LengthL = AMBE3000_AMBE_LENGTH_LBYTE;
+	pAMBEFrame->fld.Type = AMBE3000_AMBE_TYPE_BYTE;
+	pAMBEFrame->fld.ID = AMBE3000_AMBE_CHANDID_BYTE;
+	pAMBEFrame->fld.Num = AMBE3000_AMBE_NUMBITS_BYTE;
+	pAMBEFrame->fld.PT = AMBE3000_PARITY_TYPE_BYTE;
+
+	return pAMBEFrame;
+}
+
+//Called from Net Thread.
+bool CSerialDongle::MarkAMBEBufferFilled(void)
+{
+	int NextIndex;
+	auto ret = false;
+	DVSI3000struct* pAMBEBuffer;
+
+	//Calculate checksum on filled/marked buffer.
+	pAMBEBuffer = (DVSI3000struct*)(&(m_AMBE_CirBuff[m_AMBEBufHead]));
+	pAMBEBuffer->AMBEType.theAMBEFrame.fld.PP = CheckSum(pAMBEBuffer);
+
+	NextIndex = (m_AMBEBufHead + 1) & MAXDONGLEAMBEFRAMESMASK;
+	if (NextIndex != m_AMBEBufTail){ //No collision.
+		m_AMBEBufHead = NextIndex;
+		ret = true;
+	}
+	else
+	{
+		return ret;
+	}
+}
+
+
+
+//Called from various Threads
+void CSerialDongle::deObfuscate(ScrambleDirection theDirection, tAMBEFrame* pAMBEFrame)
+{
+	char DebugBitsComingIn[49];
+	char BitsGoingOut[49];
+	int  i, j;
+	int  InColumn, OutColumn;
+	const int * DirectionArray;
+	char theByte;
+
+	//Code to break apart and shuffle the bits.
+	switch (theDirection)
+	{
+	case IPSCTODONGLE:
+		DirectionArray = &IPSCTODONGLETABLE[0];
+		break;
+	case DONGLETOIPSC:
+		DirectionArray = &DONGLETOIPSCTABLE[0];
+		break;
+	default: //Shouldn't happen.
+		return;
+	}
+
+	for (i=0; i<6; i++) {   //Will treat last bit as special case.
+		InColumn = i*8 + 7; //7, 15, 23, 31, 39,47
+		theByte = pAMBEFrame->fld.ChannelBits[i];
+		for (j=0; j<8; j++){
+			OutColumn = *(DirectionArray + InColumn);
+
+			DebugBitsComingIn[InColumn] = theByte & 0x01;
+			BitsGoingOut[OutColumn]     = theByte & 0x01;
+			InColumn--;
+			theByte = theByte>>1;
+		}
+	}
+	InColumn = 48;  //Special case of last bit.
+	OutColumn = *(DirectionArray + 48);
+	theByte = ((pAMBEFrame->fld.ChannelBits[6])>>7) & 0x01;
+	DebugBitsComingIn[48]   = theByte;
+	BitsGoingOut[OutColumn] = theByte;
+
+
+	//Code to re-assemble the shuffled bits.
+	OutColumn = 0; //More efficient to increment than calculate(??)
+	for (i=0; i<6; i++){  //Will treat last bit as special case.
+		theByte = 0;
+		for (j=0; j<8; j++){
+			theByte = (theByte<<1) + BitsGoingOut[OutColumn++];
+		}
+	 pAMBEFrame->fld.ChannelBits[i] = theByte;
+	}
+	theByte = BitsGoingOut[48]<<7;  //Handle special case.
+	pAMBEFrame->fld.ChannelBits[6] = theByte;
+
+	//将数据写入ambe.bit
+	if (theDirection == DONGLETOIPSC)
+	{
+		
+		char buffer[10];
+		memset(buffer, 0, 10);
+		memcpy(buffer, pAMBEFrame->fld.ChannelBits, 7);
+		//WriteVoice(buffer, 7);
+	}
+}
+
+//Called from External Threads.
+uint8_t CSerialDongle::CheckSum(DVSI3000struct* pMsg)
+{
+	int i, length;
+	uint8_t sum;
+	length = (pMsg->base.LengthH)<<8;
+	length += pMsg->base.LengthL;
+	sum = 0;
+	for (i=1; i<length+3; i++){
+		sum ^= pMsg->All[i];
+	}
+	return sum;
+}
+
+
+////Called from Sound In Thread
+//void CSerialDongle::SendDVSIPCMMsgtoDongle( unsigned __int8* pData )
+//{
+//	//int i;
+//	//int snapPCMBufTail;
+//
+//	//snapPCMBufTail = (m_PCMBufTail - 1) & MAXDONGLEPCMFRAMESMASK;
+//	//if (snapPCMBufTail != m_PCMBufHead){ //No collision.
+//	//	//Put new message into circular buffer.
+//	//	m_PCM_CirBuff[m_PCMBufHead].fld.Sync = AMBE3000_SYNC_BYTE;
+//	//	m_PCM_CirBuff[m_PCMBufHead].fld.LengthH = AMBE3000_PCM_LENGTH_HBYTE;
+//	//	m_PCM_CirBuff[m_PCMBufHead].fld.LengthL = AMBE3000_PCM_LENGTH_LBYTE;
+//	//	m_PCM_CirBuff[m_PCMBufHead].fld.Type = AMBE3000_PCM_TYPE_BYTE;
+//	//	m_PCM_CirBuff[m_PCMBufHead].fld.ID = AMBE3000_PCM_SPEECHID_BYTE;
+//	//	m_PCM_CirBuff[m_PCMBufHead].fld.Num = AMBE3000_PCM_NUMSAMPLES_BYTE;
+//	//	for (i=0; i< AMBE3000_PCM_INTSAMPLES_BYTE; i++){
+//	//		m_PCM_CirBuff[m_PCMBufHead].fld.Samples[1+(i<<1)] = *pData++; //Endian conversion.
+//	//		m_PCM_CirBuff[m_PCMBufHead].fld.Samples[  (i<<1)] = *pData++;
+//	//	}
+//	//	m_PCM_CirBuff[m_PCMBufHead].fld.PT = AMBE3000_PARITYTYPE_BYTE;
+//	//	m_PCM_CirBuff[m_PCMBufHead].fld.PP = CheckSum((DVSI3000struct *)&m_PCM_CirBuff[m_PCMBufHead]);
+//	//	//!!!!!!!
+//	//	m_PCMBufHead = (m_PCMBufHead + 1) & MAXDONGLEPCMFRAMESMASK;
+//	//	//g_SoundCard.BigEndianSoundOut(&m_PCM_CirBuff[m_PCMBufHead].fld.Samples[0]);
+//	//}
+//
+//}
+
+
+//Called from Serial Thread.
+int CSerialDongle::AssembleMsg(int numBytes, int * dwBytesAssembled)
+{
+	
+	int Index;
+	uint8_t ch;
+	int WholeMessageCount = 0;
+	int bytecount = 0;
+
+	*dwBytesAssembled = 0;
+	Index = 0;
+	while (0 < numBytes--){
+		bytecount++;
+		ch = m_DongleRxBuffer[Index++];
+		switch(m_ParserState)	//Simple state machine to get generic DVSI msg
+		{
+			case FIND_START:		//search for start byte
+				if (AMBE3000_SYNC_BYTE == ch){
+					m_RxDVSImsg.base.Sync = AMBE3000_SYNC_BYTE;
+					m_ParserState = HIGH_LENGTH;	//get high byte of length
+				}
+				break;
+			case HIGH_LENGTH:	//here for high byte of length
+				m_RxDVSImsg.base.LengthH = ch;
+				m_RxMsgLength = ch<<8;
+				m_ParserState = LOW_LENGTH;	//get low byte of length
+				break;
+			case LOW_LENGTH:	//here for low byte of length
+				m_RxDVSImsg.base.LengthL = ch;
+				m_RxMsgLength += ch;
+
+				if (0x144 < m_RxMsgLength){
+					m_RxMsgLength = 0x144;
+				}
+				m_RxMsgLength += 1; //length remaining.
+				m_RxMsgIndex = 3;
+				m_ParserState = READ_DATA;	//get rest of data
+				break;
+
+
+			case READ_DATA:	//try to read the rest of the message or to end of buffer
+				m_RxDVSImsg.All[m_RxMsgIndex++] = ch;
+				if ((--m_RxMsgLength) == 0){
+					m_RxMsgLength = ((m_RxDVSImsg.base.LengthH)<<8) + (m_RxDVSImsg.base.LengthL) + 4; //Total length.
+					m_ParserState = FIND_START;	//go back to first stage
+					ParseDVSImsg(&m_RxDVSImsg);	//call DVSI message parsing routine	
+					*dwBytesAssembled += bytecount;
+					bytecount = 0;
+					WholeMessageCount++;
+				}
+				break;
+			default:
+				m_ParserState = FIND_START;	//reset parser to first stage
+				break;
+		} //end switch statement
+	}
+	return WholeMessageCount;
+
+	
+}
+
+//Called from Serial Thread.
+void CSerialDongle::ParseDVSImsg(DVSI3000struct* pMsg)
+{
+	
+	uint8_t mType;
+	mType = pMsg->base.Type;	//strip out just type field
+	dataType = mType;
+	switch (mType){
+	case AMBE3000_AMBE_TYPE_BYTE:
+		//is a compressed data frame from the Dongle
+		deObfuscate(DONGLETOIPSC, (tAMBEFrame*)pMsg);
+		//g_MyNet.NetStuffTxVoice((unsigned char*)&(pMsg->AMBEType.theAMBEFrame.fld.ChannelBits[0]));
+		break;
+	case AMBE3000_PCM_TYPE_BYTE:
+		//is a codec uncompressed 8000sps 16 bit data packet from the Dongle
+		//send dongle codec data to soundcard output speaker.
+		//SHORT coming from Dongle is Big-endian. 
+		//Do conversion in destination.
+		//m_directSound.BigEndianSoundOut( (unsigned __int8*)&(pMsg->PCMType.thePCMFrame.fld.Samples[0]) );
+		memcpy(thePCMFrameFldSamples, (uint8_t*)&(pMsg->PCMType.thePCMFrame.fld.Samples[0]), THEPCMFRAMEFLDSAMPLESLENGTH);
+		break;
+	case AMBE3000_CCP_TYPE_BYTE:
+	
+		break;
+	}
+	
+}
+
+
+
+void CSerialDongle::send_any_ambe_to_dongle(void)
+{
+	if (m_AMBEBufHead != m_AMBEBufTail){
+		if (AMBE3000_PCM_BYTESINFRAME != m_dwExpectedDongleRead){
+			m_dwExpectedDongleRead = AMBE3000_PCM_BYTESINFRAME;
+
+			//SetEvent(m_hTickleRxSerialEvent);
+		}
+		//SetEvent(m_hTickleTxSerialEvent);
+		set_tx_serial_event();
+	}
+}
+
+
+void CSerialDongle::extract_voice(char * pBuffer, int len)
+{
+	auto leftLen = len;
+
+	tAMBEFrame* pAMBEFrame;
+	pAMBEFrame = GetFreeAMBEBuffer();
+	auto readLen = (leftLen >= 7) ? 7 : leftLen;
+	memcpy(pAMBEFrame->fld.ChannelBits, pBuffer, readLen);
+	leftLen -= readLen;
+	auto index = readLen;
+	while (readLen == 7)
+	{
+		deObfuscate(IPSCTODONGLE, pAMBEFrame);
+		if (MarkAMBEBufferFilled() != true)//将数据推送到环形队列中
+		{
+			log_warning("AMBE buff full!!!\n");
+		}
+		pAMBEFrame = GetFreeAMBEBuffer();
+		if (NULL == pAMBEFrame)
+		{
+
+			return;
+		}
+		readLen = (leftLen >= 7) ? 7 : leftLen;
+		if (readLen <= 0)
+		{
+			break;
+		}
+		memcpy(pAMBEFrame->fld.ChannelBits, pBuffer + index, readLen);
+		leftLen -= readLen;
+		index += readLen;
+	}
+}
+
+uint8_t * CSerialDongle::read_dongle_data()
+{
+	if (AMBE3000_PCM_TYPE_BYTE == dataType)
+	{
+		dataType = 0;
+		return thePCMFrameFldSamples;
+	}
+	return NULL;
+
+}
+
+void CSerialDongle::get_read_dongle_data()
+{
+	uint8_t * pBuffer = NULL;
+
+	pBuffer = read_dongle_data();
+	if (pBuffer != NULL)
+	{
+		auto voice_fd = open("/opt/pcm.data", O_RDWR | O_APPEND | O_CREAT);
+		if (voice_fd < 0)
+		{
+			log_warning("voice_fd open error\r\n");
+			close(voice_fd);
+			return;
+		}
+		auto ret = write(voice_fd, pBuffer, THEPCMFRAMEFLDSAMPLESLENGTH);
+		if (ret < 0)
+		{
+			log_warning("write pcm-voice err!!!\r\n");
+		}
+		close(voice_fd);
+		log_debug("save pcm data okay.\n");
+
+	}
+	set_read_dongle_data();
+	
+
+}
+
+void CSerialDongle::set_read_dongle_data()
+{
+	memset(thePCMFrameFldSamples, 0, THEPCMFRAMEFLDSAMPLESLENGTH);
+
+}
