@@ -104,7 +104,7 @@ int main(int argc, char** argv)
 		else
 		{
 			usleep(900 * 1000);
-			log_debug("...main-process wating...\r\n");
+			//log_debug("...main-process wating...\r\n");
 		}
 	}
 	log_debug("exit main-process...\r\n");

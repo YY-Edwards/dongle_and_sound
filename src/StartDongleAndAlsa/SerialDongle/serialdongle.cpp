@@ -192,6 +192,7 @@ int CSerialDongle::aio_read_file(struct aiocb *r_cbp_ptr, int fd, int size)
 {
 	//填充struct aiocb 结构体 
 	//bzero(&r_cbp, sizeof(r_cbp));
+	bzero((void *)r_cbp.aio_buf, INTERNALCOMBUFFSIZE);
 
 	//read-aio
 	//请求读取的字节数
@@ -320,8 +321,8 @@ int CSerialDongle::SerialRxThreadFunc()
 			log_debug("qio_error() ret:%d\n", ret);
 		}
 		//请求操作完成，获取返回值
-		ret = aio_return(&r_cbp);
-		if (ret > 0)
+		read_nbytes = aio_return(&r_cbp);
+		if (read_nbytes > 0)
 		{
 			log_debug("dongle recv pcm:%d bytes\n", read_nbytes);
 			//assemble:注意是同步解析。如需要异步，则用环形队列作缓冲。
@@ -710,6 +711,7 @@ int CSerialDongle::AssembleMsg(int numBytes, int * dwBytesAssembled)
 					*dwBytesAssembled += bytecount;
 					bytecount = 0;
 					WholeMessageCount++;
+					log_debug("Parse pcm-msg okay.\n");
 				}
 				break;
 			default:

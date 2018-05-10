@@ -26,7 +26,6 @@ enum	PARSERSTATE	{	FIND_START,
 						LOW_LENGTH,
 						READ_DATA    };
 
-//wxj
 enum    ScrambleDirection  {
 	IPSCTODONGLE,
 	DONGLETOIPSC
