@@ -80,6 +80,26 @@ int	CSerialDongle::open_dongle(const char *lpsz_Device)
 		r_cbp.aio_fildes = m_hComm;
 		//发起读请求
 
+		//////设置异步通知方式
+		///*用信号通知*/
+		//struct sigaction sig_r_act;
+		////设置信号处理函数
+		//sigemptyset(&sig_r_act.sa_mask);
+		//sig_r_act.sa_flags = SA_SIGINFO;
+		//sig_r_act.sa_sigaction = aio_read_completion_hander;
+
+		////连接AIO请求和信号处理函数
+		//r_cbp.aio_sigevent.sigev_notify = SIGEV_SIGNAL;
+		////设置产生的信号
+		//r_cbp.aio_sigevent.sigev_signo = SIGIO;
+		////传入aiocb 结构体
+		//r_cbp.aio_sigevent.sigev_value.sival_ptr = &r_cbp;
+
+		////将信号与信号处理函数绑定
+		//sigaction(SIGIO, &sig_r_act, NULL);
+
+
+
 		////设置异步通知方式
 		////用线程回调
 		//r_cbp.aio_sigevent.sigev_notify = SIGEV_THREAD;
@@ -104,11 +124,11 @@ int	CSerialDongle::open_dongle(const char *lpsz_Device)
 
 		////设置异步通知方式
 		/*用信号通知*/
-		struct sigaction sig_act;
+		struct sigaction sig_w_act;
 		//设置信号处理函数
-		sigemptyset(&sig_act.sa_mask);
-		sig_act.sa_flags = SA_SIGINFO;
-		sig_act.sa_sigaction = aio_write_completion_hander;
+		sigemptyset(&sig_w_act.sa_mask);
+		sig_w_act.sa_flags = SA_SIGINFO;
+		sig_w_act.sa_sigaction = aio_write_completion_hander;
 
 		//连接AIO请求和信号处理函数
 		w_cbp.aio_sigevent.sigev_notify = SIGEV_SIGNAL;
@@ -118,7 +138,7 @@ int	CSerialDongle::open_dongle(const char *lpsz_Device)
 		w_cbp.aio_sigevent.sigev_value.sival_ptr = &w_cbp;
 		
 		//将信号与信号处理函数绑定
-		sigaction(SIGIO, &sig_act, NULL);
+		sigaction(SIGIO, &sig_w_act, NULL);
 
 
 		////用线程回调
@@ -141,7 +161,7 @@ int	CSerialDongle::open_dongle(const char *lpsz_Device)
 	//reset_rx_serial_event();
 	//reset_tx_serial_event();
 
-	ret = CreateSerialRxThread();
+	//ret = CreateSerialRxThread();
 	ret = CreateSerialTxThread();
 
 
@@ -478,7 +498,7 @@ void CSerialDongle::aio_write_completion_hander(int signo, siginfo_t *info, void
 	if (info->si_signo == SIGIO)//确定是我们需要的信号
 	{
 	
-		//log_debug("aio_write complete:\n");
+		log_debug("signal code:%d\n", info->si_code);
 		//获取aiocb 结构体的信息
 		//req = (struct aiocb*) sigval.sival_ptr;
 		req = (struct aiocb*) info->si_value.sival_ptr;
