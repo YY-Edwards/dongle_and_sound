@@ -250,10 +250,13 @@ int MySynCond::CondWait(int waittime)
 
 	pthread_mutex_lock(&m_mutex);
 
-	gettimeofday(&now, NULL);
-	timeraddMS(&now, waittime);//ms级别
-	outtime.tv_sec = now.tv_sec;
-	outtime.tv_nsec = now.tv_usec * 1000;
+	if(waittime!=0)
+	{
+		gettimeofday(&now, NULL);
+		timeraddMS(&now, waittime);//ms级别
+		outtime.tv_sec = now.tv_sec;
+		outtime.tv_nsec = now.tv_usec * 1000;
+	}
 
 	while ((trigger_flag == false) && (wait_ret != ETIMEDOUT)){
 		if(0 == waittime)

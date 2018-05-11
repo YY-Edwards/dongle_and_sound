@@ -25,6 +25,7 @@ CSerialDongle::CSerialDongle()
 	memset(thePCMFrameFldSamples, 0, THEPCMFRAMEFLDSAMPLESLENGTH);
 	dataType = 0;
 	m_hComm = 0;
+	pcm_voice_fd = 0;
 	pThis = this;
 	log_debug("New: CSerialDongle\n");
 }
@@ -144,6 +145,13 @@ int	CSerialDongle::open_dongle(const char *lpsz_Device)
 	ret = CreateSerialTxThread();
 
 
+	pcm_voice_fd = open("/opt/pcm.data", O_RDWR | O_APPEND | O_CREAT);
+	if (pcm_voice_fd < 0)
+	{
+		log_warning("pcm_voice_fd open error\r\n");
+		close(pcm_voice_fd);
+		//return;
+	}
 	return ret;
 
 }
@@ -205,6 +213,12 @@ void CSerialDongle::close_dongle(void)
 	}
 	DongleRxDataCallBackFunc = nullptr;
 	m_hComm = 0;
+
+	if (pcm_voice_fd != 0)
+	{
+		close(pcm_voice_fd);
+		pcm_voice_fd = 0;
+	}
 
 }
 
@@ -473,7 +487,7 @@ void CSerialDongle::aio_write_completion_hander(int signo, siginfo_t *info, void
 		if ((ret = aio_error(req)) == 0)
 		{
 			log_debug("\r\n\r\n");
-			log_debug("aio_write complete.\n");
+			log_debug("aio_write complete[.]\n");
 			ret = aio_return(req);
 			log_debug("aio_write :%d bytes\n", ret);
 			if (pThis->fWaitingOnPCM){
@@ -522,7 +536,7 @@ void CSerialDongle::set_tx_serial_event()
 	if (tx_serial_event_cond != nullptr)
 	{
 		tx_serial_event_cond->CondTrigger(false);
-		log_debug("timer set write event:\n");
+		log_debug("timer set write event[:]\n");
 	}
 
 }
@@ -849,23 +863,17 @@ void CSerialDongle::get_read_dongle_data()
 	uint8_t * pBuffer = NULL;
 
 	pBuffer = read_dongle_data();
-	if (pBuffer != NULL)
+	if ((pBuffer != NULL) && (pcm_voice_fd!=0))
 	{
-		auto voice_fd = open("/opt/pcm.data", O_RDWR | O_APPEND | O_CREAT);
-		if (voice_fd < 0)
-		{
-			log_warning("voice_fd open error\r\n");
-			close(voice_fd);
-			return;
-		}
-		auto ret = write(voice_fd, pBuffer, THEPCMFRAMEFLDSAMPLESLENGTH);
+		auto ret = write(pcm_voice_fd, pBuffer, THEPCMFRAMEFLDSAMPLESLENGTH);
 		if (ret < 0)
 		{
 			log_warning("write pcm-voice err!!!\r\n");
 		}
-		close(voice_fd);
-		log_debug("save pcm data okay.\n");
-
+		else
+		{
+			log_debug("save pcm data okay.\n");
+		}
 	}
 	set_read_dongle_data();
 	

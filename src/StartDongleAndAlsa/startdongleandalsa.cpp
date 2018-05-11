@@ -67,9 +67,9 @@ void CStartDongleAndSound::timer()//用来定时(20ms)触发串口读，写数据，并将CSeria
 	//第一次间隔it.it_value这么长,以后每次都是it.it_interval这么长,就是说it.it_value变0的时候会装载it.it_interval的值  
 	//it.it_interval可以理解为周期  
 	struct itimerspec it;
-	it.it_interval.tv_sec = 5;  
+	it.it_interval.tv_sec = 1;  
 	it.it_interval.tv_nsec = 0;//间隔20ms
-	it.it_value.tv_sec = 5;
+	it.it_value.tv_sec = 1;
 	it.it_value.tv_nsec = 0;
 
 	if (timer_settime(timerid, 0, &it, NULL) == -1)

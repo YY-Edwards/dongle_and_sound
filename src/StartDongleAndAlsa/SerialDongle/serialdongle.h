@@ -175,6 +175,9 @@ private:
 	unsigned int dataType;
 	uint8_t thePCMFrameFldSamples[THEPCMFRAMEFLDSAMPLESLENGTH];
 	CUsartWrap	m_usartwrap;
+	
+	int pcm_voice_fd;
+
 
 };
 
