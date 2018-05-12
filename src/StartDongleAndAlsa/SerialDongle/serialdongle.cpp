@@ -470,7 +470,7 @@ int CSerialDongle::SerialTxThreadFunc()
 				//Something may be ready to send.
 				reset_tx_serial_event();
 				if (m_PleaseStopSerial){
-					return ret;
+					break; 
 				}
 				if (true == m_bPleasePurgeAMBE){
 					m_AMBEBufTail = m_AMBEBufHead;

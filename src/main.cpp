@@ -99,6 +99,7 @@ int main(int argc, char** argv)
 			log_debug("...closing threads...\r\n");
 			netlink_server.monitor_stop();
 			m_startdongle->stop();
+			delete m_startdongle;
 			break;
 		}
 		else
