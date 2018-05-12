@@ -15,29 +15,35 @@ public:
 	~CUsartWrap();
 
 	//return：dev_fd
-	int init_usart_config(const char*dev, int baud_rate, int bits, int stop, int parity);
+	int init_usart_config(const char*dev, int flag, int baud_rate, int bits, int stop, int parity);
 
-	int recv(char *buf, int nbytes, unsigned int timout);
+	int recv(int fd,char *buf, int nbytes, unsigned int timout);
 
-	int send(char *buf, int size);
+	int send(int fd, char *buf, int size);
 
 	void close_usart_dev(){
-		if (dev_fd != 0)
+		if (w_fd != 0)
 		{
-			close(dev_fd);
-			dev_fd = 0;
+			close(w_fd);
+			w_fd = 0;
+		}
+		if (r_fd != 0)
+		{
+			close(r_fd);
+			r_fd = 0;
 		}
 	}
 
-	void flush_dev(int flags);
+	void flush_dev(int fd, int flags);
 
 
 private:
-	int  dev_fd;
+	int  w_fd;
+	int  r_fd;
 
-	int open_dev(const char *dev);
+	int open_dev(const char *dev, int flag);
 
-	void set_speed(int speed);
+	void set_speed(int fd, int speed);
 	/*
 	*@brief   设置串口数据位，停止位和效验位
 	*@param  fd     类型  int  打开的串口文件句柄*
@@ -45,9 +51,9 @@ private:
 	*@param  stopbits 类型  int 停止位   取值为 1 或者2*
 	*@param  parity  类型  int  效验类型 取值为N,E,O,,S
 	*/
-	int set_parity(int databits, int stopbits, int parity);
+	int set_parity(int fd, int databits, int stopbits, int parity);
 
-	int tread(void *buf, unsigned int nbytes, unsigned int timout);
+	int tread(int fd, void *buf, unsigned int nbytes, unsigned int timout);
 
 };
 

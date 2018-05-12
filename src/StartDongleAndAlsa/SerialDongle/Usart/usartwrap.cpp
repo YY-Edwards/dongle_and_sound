@@ -12,52 +12,81 @@ int name_arr_temp[] = {
 
 
 CUsartWrap::CUsartWrap()
-:dev_fd(0)
+:w_fd(0)
+, r_fd(0)
 {
 	log_debug("New: CUsartWrap \n");
 }
 
 CUsartWrap::~CUsartWrap()
 {
-	if (dev_fd != 0){
-		close(dev_fd);
+	if (w_fd != 0){
+		close(w_fd);
+	}
+	if (r_fd != 0){
+		close(r_fd);
 	}
 	log_debug("Destory: CUsartWrap \n");
 }
-void CUsartWrap::flush_dev(int flags)
+void CUsartWrap::flush_dev(int dev_fd, int flags)
 {
-	if (dev_fd != 0)
-		tcflush(dev_fd, flags);// 读写前先清空缓冲区数据，以免串口读取了数据，但是用户没有读取。对同步读写时需要注意每次读写前后是否清空。
+		
+	tcflush(dev_fd, flags);// 读写前先清空缓冲区数据，以免串口读取了数据，但是用户没有读取。对同步读写时需要注意每次读写前后是否清空。
 	usleep(20000);
 }
 
-int CUsartWrap::init_usart_config(const char*dev, int baud_rate, int bits, int stop, int parity)
+int CUsartWrap::init_usart_config(const char*dev, int flag, int baud_rate, int bits, int stop, int parity)
 {
 
-	dev_fd = open_dev(dev);
+	if (flag == O_RDONLY)
+	{
+		r_fd = open_dev(dev, flag);
 
-	if (dev_fd > 0) {
-		set_speed(baud_rate);
-	}
-	else {
-		log_warning("Error opening %s: %s\n", dev, strerror(errno));
-		return -1;
-	}
+		if (r_fd > 0) {
+			set_speed(r_fd, baud_rate);
+		}
+		else {
+			log_warning("Error opening %s: %s\n", dev, strerror(errno));
+			return -1;
+		}
 
-	if (set_parity(bits, stop, parity) == MC_FALSE) {
-		log_warning("Set Parity Error\n");
-		close(dev_fd);
-		dev_fd = 0;
-		return - 1;
-	}
+		if (set_parity(r_fd, bits, stop, parity) == MC_FALSE) {
+			log_warning("Set Parity Error\n");
+			close(r_fd);
+			r_fd = 0;
+			return -1;
+		}
 
-	return dev_fd;
+		return r_fd;
+	}
+	else
+	{
+		w_fd = open_dev(dev, flag);
+
+		if (w_fd > 0) {
+			set_speed(w_fd, baud_rate);
+		}
+		else {
+			log_warning("Error opening %s: %s\n", dev, strerror(errno));
+			return -1;
+		}
+
+		if (set_parity(w_fd, bits, stop, parity) == MC_FALSE) {
+			log_warning("Set Parity Error\n");
+			close(w_fd);
+			w_fd = 0;
+			return -1;
+		}
+
+		return w_fd;
+
+	}
 
 }
 
 
 
-int CUsartWrap::tread(void *buf, unsigned int nbytes, unsigned int timout)//ms
+int CUsartWrap::tread(int dev_fd, void *buf, unsigned int nbytes, unsigned int timout)//ms
 {
 
 	if (dev_fd == 0)return -1;
@@ -90,13 +119,13 @@ int CUsartWrap::tread(void *buf, unsigned int nbytes, unsigned int timout)//ms
 }
 
 
-int CUsartWrap::send(char *buf, int size)
+int CUsartWrap::send(int dev_fd, char *buf, int size)
 {
 	return (write(dev_fd, buf, size));
 	//tcdrain(dev_fd);
 
 }
-int CUsartWrap::recv(char *buf, int nbytes, unsigned int timout)
+int CUsartWrap::recv(int dev_fd, char *buf, int nbytes, unsigned int timout)
 {
 	//int  nleft;
 	int  nread;
@@ -104,7 +133,7 @@ int CUsartWrap::recv(char *buf, int nbytes, unsigned int timout)
 
 	while (nleft > 0) 
 	{
-		if ((nread = tread(buf, nleft, timout)) < 0) 
+		if ((nread = tread(dev_fd, buf, nleft, timout)) < 0) 
 		{
 			if (nleft == nbytes)
 			{
@@ -132,10 +161,10 @@ int CUsartWrap::recv(char *buf, int nbytes, unsigned int timout)
 	return(nbytes - nleft);      /* return >= 0 */
 
 }
-int CUsartWrap::open_dev(const char *dev)
+int CUsartWrap::open_dev(const char *dev, int flag)
 {
 	auto device_file_path = (char *)dev;
-	auto fd = open(device_file_path, O_RDWR);         //| O_NOCTTY | O_NDELAY
+	auto fd = open(device_file_path, flag);         //| O_NOCTTY | O_NDELAY
 	if (-1 == fd) { /*\C9\E8\D6\C3\CA\dev_fd\BE\DDλ\CA\dev_fd*/
 		log_warning("Can't Open Serial Port");
 		return -1;
@@ -143,9 +172,10 @@ int CUsartWrap::open_dev(const char *dev)
 	else
 		return fd;
 
+
 }
 
-void CUsartWrap::set_speed(int speed)
+void CUsartWrap::set_speed(int dev_fd, int speed)
 {
 	int   i;
 	int   status;
@@ -171,7 +201,7 @@ void CUsartWrap::set_speed(int speed)
 	}
 }
 
-int CUsartWrap::set_parity(int databits, int stopbits, int parity)
+int CUsartWrap::set_parity(int dev_fd, int databits, int stopbits, int parity)
 {
 	if (dev_fd == 0)return MC_FALSE;
 	struct termios options;

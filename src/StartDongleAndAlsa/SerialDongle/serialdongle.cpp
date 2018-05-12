@@ -24,7 +24,8 @@ CSerialDongle::CSerialDongle()
 	//m_dwExpectedDongleRead = AMBE3000_AMBE_BYTESINFRAME
 	memset(thePCMFrameFldSamples, 0, THEPCMFRAMEFLDSAMPLESLENGTH);
 	dataType = 0;
-	m_hComm = 0;
+	m_rComm = 0;
+	m_wComm = 0;
 	pcm_voice_fd = 0;
 	pThis = this;
 	log_debug("New: CSerialDongle\n");
@@ -53,16 +54,20 @@ int	CSerialDongle::open_dongle(const char *lpsz_Device)
 	fWaitingOnAMBE = false;
 
 
-	auto ret = m_usartwrap.init_usart_config(lpsz_Device, DONGLEBAUDRATE, DONGLEBITS, DONGLESTOP, DONGLEPARITY);
-	if (ret<0)
+	auto r_ret = m_usartwrap.init_usart_config(lpsz_Device, O_RDONLY, DONGLEBAUDRATE, DONGLEBITS, DONGLESTOP, DONGLEPARITY);
+	auto w_ret = m_usartwrap.init_usart_config(lpsz_Device, O_WRONLY, DONGLEBAUDRATE, DONGLEBITS, DONGLESTOP, DONGLEPARITY);
+	if ((r_ret<0) || (w_ret<0))
 	{
 		log_warning("open usart failed\n");
-		return ret;
+		return r_ret;
 	}
 	else
 	{
-		log_debug("open usart okay,fd:%d\n", ret);
-		m_hComm = ret;
+		log_debug("open usart okay,r_fd:%d\n", r_ret);
+		log_debug("open usart okay,w_fd:%d\n", w_ret);
+
+		m_rComm = r_ret;
+		m_wComm = w_ret;
 
 		////填充struct aiocb 结构体 
 		bzero(&r_cbp, sizeof(r_cbp));
@@ -77,11 +82,11 @@ int	CSerialDongle::open_dongle(const char *lpsz_Device)
 		//文件偏移
 		r_cbp.aio_offset = 0;
 		//读取的文件描述符
-		r_cbp.aio_fildes = m_hComm;
+		r_cbp.aio_fildes = m_rComm;
 		//发起读请求
 
-		//////设置异步通知方式
-		///*用信号通知*/
+		////////设置异步通知方式
+		/////*用信号通知*/
 		//struct sigaction sig_r_act;
 		////设置信号处理函数
 		//sigemptyset(&sig_r_act.sa_mask);
@@ -119,7 +124,7 @@ int	CSerialDongle::open_dongle(const char *lpsz_Device)
 		//文件偏移
 		w_cbp.aio_offset = 0;
 		//读取的文件描述符
-		w_cbp.aio_fildes = m_hComm;
+		w_cbp.aio_fildes = m_wComm;
 		//发起读请求
 
 		////设置异步通知方式
@@ -150,6 +155,7 @@ int	CSerialDongle::open_dongle(const char *lpsz_Device)
 		////设置属性为默认
 		//w_cbp.aio_sigevent.sigev_notify_attributes = NULL;
 
+
 	}
 
 
@@ -161,7 +167,7 @@ int	CSerialDongle::open_dongle(const char *lpsz_Device)
 	//reset_rx_serial_event();
 	//reset_tx_serial_event();
 
-	//ret = CreateSerialRxThread();
+	auto ret = CreateSerialRxThread();
 	ret = CreateSerialTxThread();
 
 
@@ -202,9 +208,13 @@ void CSerialDongle::close_dongle(void)
 {
 	log_debug("close dongle resource...\n");
 	SetThreadExitFlag();
-	auto ret = aio_cancel(m_hComm, NULL);
-	if (ret != AIO_CANCELED)
-		log_debug("aio_cancle:%d, errno:%d\n",ret, errno);
+	auto w_ret = aio_cancel(m_wComm, NULL);
+	if (w_ret != AIO_CANCELED)
+		log_debug("m_wComm aio_cancle:%d, errno:%d\n",w_ret, errno);
+
+	auto r_ret = aio_cancel(m_rComm, NULL);
+	if (r_ret != AIO_CANCELED)
+		log_debug("m_rComm aio_cancle:%d, errno:%d\n", r_ret, errno);
 
 	if (serial_tx_thread_p != nullptr)
 	{
@@ -232,8 +242,8 @@ void CSerialDongle::close_dongle(void)
 		tx_serial_event_cond = nullptr;
 	}
 	DongleRxDataCallBackFunc = nullptr;
-	m_hComm = 0;
-
+	m_rComm = 0;
+	m_wComm = 0;
 	if (pcm_voice_fd != 0)
 	{
 		close(pcm_voice_fd);
@@ -305,7 +315,7 @@ int CSerialDongle::aio_write_file(struct aiocb *w_cbp_ptr, int fd, void *buff, i
 
 void CSerialDongle::purge_dongle(int flags)
 {
-	m_usartwrap.flush_dev(flags);
+	//m_usartwrap.flush_dev(flags);
 }
 
 int CSerialDongle::CreateSerialRxThread()
@@ -358,9 +368,15 @@ int CSerialDongle::SerialRxThreadFunc()
 
 	do
 	{
-		//read
-		ret = aio_read_file(&r_cbp, m_hComm, dwImmediateExpectations);
-		if (ret < 0)break;
+		//ret = rx_serial_event_cond->CondWait(0);
+		//reset_rx_serial_event();
+		if (ret == 0)
+		{
+			//read
+			ret = aio_read_file(&r_cbp, m_rComm, dwImmediateExpectations);
+			if (ret < 0)break;
+
+		}
 
 		aiocb_list[0] = &r_cbp;
 		//阻塞，直到请求完成才会继续执行后面的语句
@@ -382,6 +398,10 @@ int CSerialDongle::SerialRxThreadFunc()
 			//assemble:注意是同步解析。如需要异步，则用环形队列作缓冲。
 			AssembledCount = AssembleMsg(read_nbytes, &dwBytesConsumed);
 
+		}
+		else if (read_nbytes == 0 )
+		{
+			log_debug("dongle recv pcm:0 bytes\n");
 		}
 
 		if (!m_PleaseStopSerial)
@@ -471,7 +491,7 @@ int CSerialDongle::SerialTxThreadFunc()
 					fWaitingOnAMBE = true;
 					fWaitingOnWrite = true;
 					log_debug("dongle send ambe buff:\n");
-					aio_write_file(&w_cbp, m_hComm, &(m_AMBE_CirBuff[m_AMBEBufTail].All[0]), AMBE3000_AMBE_BYTESINFRAME);
+					aio_write_file(&w_cbp, m_wComm, &(m_AMBE_CirBuff[m_AMBEBufTail].All[0]), AMBE3000_AMBE_BYTESINFRAME);
 					//m_usartwrap.send(&(m_AMBE_CirBuff[m_AMBEBufTail].All[0]), AMBE3000_AMBE_BYTESINFRAME);
 					//考虑串口是否已将数据发送完成
 					//m_AMBEBufTail = (m_AMBEBufTail + 1) & MAXDONGLEAMBEFRAMESMASK;//环形buff自动递增
@@ -488,6 +508,43 @@ int CSerialDongle::SerialTxThreadFunc()
 	return ret;
 }
 
+
+
+//void CSerialDongle::aio_read_completion_hander(int signo, siginfo_t *info, void *context)
+//{
+//	struct aiocb  *req;
+//	int           ret;
+//
+//	if (info->si_signo == SIGIO)//确定是我们需要的信号
+//	{
+//
+//		log_debug("r-signal code:%d\n", info->si_code);
+//		//获取aiocb 结构体的信息
+//		//req = (struct aiocb*) sigval.sival_ptr;
+//		req = (struct aiocb*) info->si_value.sival_ptr;
+//
+//		/*AIO请求完成？*/
+//		if ((ret = aio_error(req)) == 0)
+//		{
+//			log_debug("\r\n\r\n");
+//			log_debug("aio_read complete[.]\n");
+//			ret = aio_return(req);
+//			log_debug("aio_read :%d bytes\n", ret);
+//		
+//		}
+//		else
+//		{
+//			log_debug("AIO read uncomplete:%d\n", ret);
+//		}
+//	}
+//	else
+//	{
+//		log_warning("note,other singal:%d\n", info->si_signo);
+//	}
+//
+//}
+
+
 void CSerialDongle::aio_write_completion_hander(int signo, siginfo_t *info, void *context)
 //void CSerialDongle::aio_write_completion_hander(sigval_t sigval)//must be static since is thread
 {
@@ -498,7 +555,7 @@ void CSerialDongle::aio_write_completion_hander(int signo, siginfo_t *info, void
 	if (info->si_signo == SIGIO)//确定是我们需要的信号
 	{
 	
-		log_debug("signal code:%d\n", info->si_code);
+		log_debug("w-signal code:%d\n", info->si_code); 
 		//获取aiocb 结构体的信息
 		//req = (struct aiocb*) sigval.sival_ptr;
 		req = (struct aiocb*) info->si_value.sival_ptr;
@@ -533,11 +590,13 @@ void CSerialDongle::aio_write_completion_hander(int signo, siginfo_t *info, void
 	}
 
 }
+
 void CSerialDongle::set_rx_serial_event()
 {
 	if (rx_serial_event_cond != nullptr)
 	{
 		rx_serial_event_cond->CondTrigger(false);
+		log_debug("timer set read event[:]\n");
 	}
 
 }
@@ -827,6 +886,7 @@ void CSerialDongle::send_any_ambe_to_dongle(void)
 
 			//SetEvent(m_hTickleRxSerialEvent);
 		}
+		//set_rx_serial_event();
 		//SetEvent(m_hTickleTxSerialEvent);
 		set_tx_serial_event();
 	}
