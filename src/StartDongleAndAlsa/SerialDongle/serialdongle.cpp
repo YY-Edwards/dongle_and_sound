@@ -208,13 +208,19 @@ void CSerialDongle::close_dongle(void)
 {
 	log_debug("close dongle resource...\n");
 	SetThreadExitFlag();
-	auto w_ret = aio_cancel(m_wComm, NULL);
-	if (w_ret != AIO_CANCELED)
-		log_debug("m_wComm aio_cancle:%d, errno:%d\n",w_ret, errno);
-
-	auto r_ret = aio_cancel(m_rComm, NULL);
-	if (r_ret != AIO_CANCELED)
-		log_debug("m_rComm aio_cancle:%d, errno:%d\n", r_ret, errno);
+	if (m_wComm != 0)
+	{
+		auto w_ret = aio_cancel(m_wComm, NULL);
+		if (w_ret != AIO_CANCELED)
+			log_debug("m_wComm aio_cancle:%d, errno:%d\n", w_ret, errno);
+	}
+	
+	if (m_rComm != 0)
+	{
+		auto r_ret = aio_cancel(m_rComm, NULL);
+		if (r_ret != AIO_CANCELED)
+			log_debug("m_rComm aio_cancle:%d, errno:%d\n", r_ret, errno);
+	}
 
 	if (serial_tx_thread_p != nullptr)
 	{
@@ -236,12 +242,13 @@ void CSerialDongle::close_dongle(void)
 		tx_serial_event_cond = nullptr;
 	}
 
-	if (serial_rx_thread_p != nullptr)
+	if (tx_serial_event_cond != nullptr)
 	{
 		delete tx_serial_event_cond;
 		tx_serial_event_cond = nullptr;
 	}
 	DongleRxDataCallBackFunc = nullptr;
+	m_usartwrap.close_usart_dev();
 	m_rComm = 0;
 	m_wComm = 0;
 	if (pcm_voice_fd != 0)
