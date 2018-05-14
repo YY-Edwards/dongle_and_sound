@@ -104,17 +104,6 @@ int	CSerialDongle::open_dongle(const char *lpsz_Device)
 		//sigaction(SIGIO, &sig_r_act, NULL);
 
 
-
-		////设置异步通知方式
-		////用线程回调
-		//r_cbp.aio_sigevent.sigev_notify = SIGEV_THREAD;
-		////设置回调函数
-		//r_cbp.aio_sigevent.sigev_notify_function = aio_read_completion_hander;
-		////传入aiocb 结构体
-		//r_cbp.aio_sigevent.sigev_value.sival_ptr = &r_cbp;
-		////设置属性为默认
-		//r_cbp.aio_sigevent.sigev_notify_attributes = NULL;
-
 		////write-aio
 		////指定缓冲区
 		//w_cbp.aio_buf = m_PCM_CirBuff[m_PCMBufTail].All[0];
@@ -210,16 +199,16 @@ void CSerialDongle::close_dongle(void)
 	SetThreadExitFlag();
 	if (m_wComm != 0)
 	{
-		auto w_ret = aio_cancel(m_wComm, NULL);
-		if (w_ret != AIO_CANCELED)
-			log_debug("m_wComm aio_cancle:%d, errno:%d\n", w_ret, errno);
+		auto w_ret = aio_cancel(m_wComm, &w_cbp);
+		//if (w_ret != AIO_CANCELED)
+			log_debug("m_wComm aio_cancle:%d, errno:%s\n", w_ret, strerror(errno));
 	}
 	
 	if (m_rComm != 0)
 	{
-		auto r_ret = aio_cancel(m_rComm, NULL);
-		if (r_ret != AIO_CANCELED)
-			log_debug("m_rComm aio_cancle:%d, errno:%d\n", r_ret, errno);
+		auto r_ret = aio_cancel(m_rComm, &r_cbp);
+		//if (r_ret != AIO_CANCELED)
+			log_debug("m_rComm aio_cancle:%d, errno:%s\n", r_ret, strerror(errno));
 	}
 
 	if (serial_tx_thread_p != nullptr)
@@ -276,7 +265,7 @@ int CSerialDongle::aio_read_file(struct aiocb *r_cbp_ptr, int fd, int size)
 	auto ret = aio_read(r_cbp_ptr);
 	if (ret<0)
 	{
-		log_warning("aio_read failed:%d\n", errno);
+		log_warning("aio_read failed:%s\n", strerror(errno));
 		//break;
 
 	}
@@ -310,7 +299,7 @@ int CSerialDongle::aio_write_file(struct aiocb *w_cbp_ptr, int fd, void *buff, i
 	auto ret = aio_write(w_cbp_ptr);
 	if (ret<0)
 	{
-		log_warning("aio_write failed:%d\n", errno);
+		log_warning("aio_write failed:%s\n", strerror(errno));
 		//break;
 
 	}
@@ -320,9 +309,9 @@ int CSerialDongle::aio_write_file(struct aiocb *w_cbp_ptr, int fd, void *buff, i
 
 }
 
-void CSerialDongle::purge_dongle(int flags)
+void CSerialDongle::purge_dongle(int com, int flags)
 {
-	//m_usartwrap.flush_dev(flags);
+	if (0 != com)m_usartwrap.flush_dev(com, flags);
 }
 
 int CSerialDongle::CreateSerialRxThread()
@@ -390,12 +379,12 @@ int CSerialDongle::SerialRxThreadFunc()
 		ret = aio_suspend((const struct aiocb* const*)aiocb_list, 1, NULL);
 		if (ret != 0)
 		{
-			log_warning("aio_suspend() ret:%d, errno:%d\n",ret, errno);
+			log_warning("aio_suspend() ret:%d, errno:%s\n", ret, strerror(errno));
 			break;
 		}
 		if ((ret = aio_error(&r_cbp)) != 0)
 		{
-			log_debug("qio_error() ret:%d\n", ret);
+			log_debug("qio_error() ret:%d, errno:%s\n", ret, strerror(errno));
 		}
 		//请求操作完成，获取返回值
 		read_nbytes = aio_return(&r_cbp);
@@ -406,7 +395,7 @@ int CSerialDongle::SerialRxThreadFunc()
 			AssembledCount = AssembleMsg(read_nbytes, &dwBytesConsumed);
 
 		}
-		else if (read_nbytes == 0 )
+		else if (read_nbytes <= 0 )
 		{
 			log_debug("dongle recv pcm:0 bytes\n");
 		}
@@ -416,7 +405,7 @@ int CSerialDongle::SerialRxThreadFunc()
 			if (dwImmediateExpectations != m_dwExpectedDongleRead)//根据实际情况切换
 			{
 				dwImmediateExpectations = m_dwExpectedDongleRead;
-				purge_dongle(TCIFLUSH);
+				purge_dongle(m_rComm, TCIFLUSH);//刷新收到的数据
 				log_debug("switch read voice type:\n");
 			}
 		}
@@ -483,8 +472,8 @@ int CSerialDongle::SerialTxThreadFunc()
 
 				if (fWaitingOnWrite){//Previous write did not complete.
 					//Try some errorrecovery.
-					log_warning("Previous write did not complete!!!");
-					purge_dongle(TCOFLUSH);
+					log_warning("Previous write did not complete!!!\n");
+					purge_dongle(m_wComm, TCOFLUSH);//刷新写入的数据
 					fWaitingOnWrite = false;
 					fWaitingOnPCM = false;
 					fWaitingOnAMBE = false;
@@ -500,8 +489,6 @@ int CSerialDongle::SerialTxThreadFunc()
 					log_debug("dongle send ambe buff:\n");
 					aio_write_file(&w_cbp, m_wComm, &(m_AMBE_CirBuff[m_AMBEBufTail].All[0]), AMBE3000_AMBE_BYTESINFRAME);
 					//m_usartwrap.send(&(m_AMBE_CirBuff[m_AMBEBufTail].All[0]), AMBE3000_AMBE_BYTESINFRAME);
-					//考虑串口是否已将数据发送完成
-					//m_AMBEBufTail = (m_AMBEBufTail + 1) & MAXDONGLEAMBEFRAMESMASK;//环形buff自动递增
 				}
 				break;
 
@@ -558,37 +545,56 @@ void CSerialDongle::aio_write_completion_hander(int signo, siginfo_t *info, void
 
 	struct aiocb  *req;
 	int           ret;
+	static int nwrited = 0;
 
 	if (info->si_signo == SIGIO)//确定是我们需要的信号
 	{
-	
-		log_debug("w-signal code:%d\n", info->si_code); 
+		//log_debug("w-signal code:%d\n", info->si_code); 
 		//获取aiocb 结构体的信息
-		//req = (struct aiocb*) sigval.sival_ptr;
 		req = (struct aiocb*) info->si_value.sival_ptr;
 
 		/*AIO请求完成？*/
-		if ((ret = aio_error(req)) == 0)
+		ret = aio_error(req);
+		log_debug("\r\n\r\n");
+		log_debug("aio write status:%d\n", ret);
+		switch (ret)
 		{
-			log_debug("\r\n\r\n");
-			log_debug("aio_write complete[.]\n");
-			ret = aio_return(req);
-			log_debug("aio_write :%d bytes\n", ret);
-			if (pThis->fWaitingOnPCM){
-				pThis->m_PCMBufTail = (pThis->m_PCMBufTail + 1) & MAXDONGLEPCMFRAMESMASK;
-			}
-			if (pThis->fWaitingOnAMBE){
-				pThis->m_AMBEBufTail = (pThis->m_AMBEBufTail + 1) & MAXDONGLEAMBEFRAMESMASK;
-			}
-			//m_AMBEBufTail = (m_AMBEBufTail + 1) & MAXDONGLEAMBEFRAMESMASK;//环形buff自动递增
+			case EINPROGRESS://working
+				log_debug("aio write is EINPROGRESS.\n");
+				break;
 
-			pThis->fWaitingOnWrite = false;
-			pThis->fWaitingOnPCM = false;
-			pThis->fWaitingOnAMBE = false;
-		}
-		else
-		{
-			log_debug("AIO write uncomplete:%d\n", ret);
+			case ECANCELLED://cancelled
+				log_debug("aio write is ECANCELLED.\n");
+				break;
+
+			case -1://failure
+				log_debug("aio write is failure, errno:%d\n", strerror(errno));
+				break;
+
+			case 0://success
+
+					ret = aio_return(req);
+					log_debug("aio_write :%d bytes.\n", ret);
+					nwrited += ret;
+					if (nwrited == AMBE3000_AMBE_BYTESINFRAME || nwrited == AMBE3000_PCM_BYTESINFRAME)
+					{
+						log_debug("aio_write complete[.]\n");
+						nwrited = 0;
+						if (pThis->fWaitingOnPCM){
+							pThis->m_PCMBufTail = (pThis->m_PCMBufTail + 1) & MAXDONGLEPCMFRAMESMASK;
+						}
+						if (pThis->fWaitingOnAMBE){
+							pThis->m_AMBEBufTail = (pThis->m_AMBEBufTail + 1) & MAXDONGLEAMBEFRAMESMASK;
+						}
+
+						pThis->fWaitingOnWrite = false;
+						pThis->fWaitingOnPCM = false;
+						pThis->fWaitingOnAMBE = false;
+					}
+
+				break;
+			default:
+				break;
 		}
 	}
 	else

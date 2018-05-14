@@ -54,7 +54,7 @@ void CStartDongleAndSound::timer()//用来定时(20ms)触发串口读，写数据，并将CSeria
 
 	if (timer_create(CLOCK_REALTIME, &evp, &timerid) == -1)
 	{
-		log_warning("fail to timer_create:%d\n",errno);
+		log_warning("fail to timer_create:%s\n", strerror(errno));
 		//return -1;
 	}
 
@@ -74,7 +74,7 @@ void CStartDongleAndSound::timer()//用来定时(20ms)触发串口读，写数据，并将CSeria
 
 	if (timer_settime(timerid, 0, &it, NULL) == -1)
 	{
-		log_warning("fail to timer_settime:%d\n",errno);
+		log_warning("fail to timer_settime:%s\n", strerror(errno));
 		timer_delete(timerid);
 		//return -1;
 	}

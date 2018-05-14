@@ -164,7 +164,7 @@ private:
 	int aio_read_file(struct aiocb *r_cbp_t, int fd, int size);
 	int aio_write_file(struct aiocb *w_cbp_t, int fd, void *buff, int size);
 
-	void purge_dongle(int flags);
+	void purge_dongle(int com, int flags);
 
 
 public:
