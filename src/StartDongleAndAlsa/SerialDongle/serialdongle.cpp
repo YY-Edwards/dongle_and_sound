@@ -563,12 +563,12 @@ void CSerialDongle::aio_write_completion_hander(int signo, siginfo_t *info, void
 				log_debug("aio write is EINPROGRESS.\n");
 				break;
 
-			case ECANCELLED://cancelled
+			case ECANCELED://cancelled
 				log_debug("aio write is ECANCELLED.\n");
 				break;
 
 			case -1://failure
-				log_debug("aio write is failure, errno:%d\n", strerror(errno));
+				log_debug("aio write is failure, errno:%s\n", strerror(errno));
 				break;
 
 			case 0://success
