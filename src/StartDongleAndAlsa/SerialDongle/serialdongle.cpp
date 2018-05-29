@@ -404,16 +404,16 @@ int CSerialDongle::SerialRxThreadFunc()
 		}
 		//请求操作完成，获取返回值
 		read_nbytes = aio_return(&r_cbp);
+		log_debug("dongle recv pcm:%d bytes\n", read_nbytes);
 		if (read_nbytes > 0)
 		{
-			log_debug("dongle recv pcm:%d bytes\n", read_nbytes);
 			//assemble:注意是同步解析。如需要异步，则用环形队列作缓冲。
 			AssembledCount = AssembleMsg(read_nbytes, &dwBytesConsumed);
 
 		}
-		else if (read_nbytes <= 0 )
+		else if (read_nbytes < 0 )
 		{
-			log_debug("dongle recv pcm:0 bytes\n");
+			log_debug("aio_return() ret:%d, errno:%s\n", read_nbytes, strerror(errno));
 		}
 
 		if (!m_PleaseStopSerial)
