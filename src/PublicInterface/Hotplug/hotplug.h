@@ -34,6 +34,11 @@ private:
 
 	static CHotplug *pThis;
 
+	string first_delim;
+	string second_delim;
+	string third_delim;
+	string hotplug_dev_name;
+
 	/*
 	声明socket接口类
 	*/
@@ -63,7 +68,7 @@ private:
 	/*
 	parse the event
 	*/
-	void parse_event(const char *msg, struct luther_gliethttp *luther_gliethttp);
+	void parse_event(const char *msg, struct luther_gliethttp *luther_ptr);
 	
 
 	bool set_thread_exit_flag;

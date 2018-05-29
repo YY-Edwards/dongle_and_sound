@@ -235,16 +235,40 @@ int CHotplug::HotplugMonitorThreadFunc()
 
 
 }
-void CHotplug::parse_event(const char *msg, struct luther_gliethttp *luther_gliethttp)
+void CHotplug::parse_event(const char *msg, struct luther_gliethttp *luther_ptr)
 {
+	string temp_str = msg;
+
 	//log_debug("recv:%s\n", msg);
-	log("recv:\n%s\n", msg);
+	log("recv:\n");
+	log("%s\n", msg);
+	int last = 0;
+	int index = temp_str.find(first_delim, last);//"libudev"
+	if (index != std::string::npos) //hint:  here "string::npos"means find failed  
+	{
+		index = temp_str.find(second_delim, last);//"ACTION"
+		if (index != std::string::npos)
+		{
+			index = temp_str.find_first_of('=', index);//"="
+			int end_index = temp_str.find_first_of('\n', index);//"\n"
+			string tt = temp_str.substr((index + 1), (end_index - index -1));
+			log_debug("\n**yoyo**\n");
+			log_debug("find action:%s\n", tt.c_str());
+			log_debug("\n**yoyo**\n");
+		}
+
+	}
+
 }
 
 
 
 void CHotplug::monitor_start(void)
 {
+	first_delim = "libudev";
+	second_delim = "ACTION";
+	third_delim = "SUBSYSTEM";
+	hotplug_dev_name = "";
 	init_netlink_socket(false);
 	if (hotplug_monitor_thread_p == nullptr)
 	{
@@ -255,6 +279,7 @@ void CHotplug::monitor_start(void)
 void CHotplug::monitor_stop(void)
 {
 	log_debug("SetThreadExit: HotplugMonitorThread\n");
+	hotplug_dev_name = "";
 	SetThreadExitFlag();
 	if (hotplug_monitor_thread_p != nullptr)
 	{
