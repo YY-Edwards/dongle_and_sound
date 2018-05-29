@@ -36,6 +36,24 @@ typedef struct{
 #pragma pack(pop)
 
 
+//队列接口类 
+class IBaseQueue
+{
+public:
+	virtual ~IBaseQueue(){}
+
+public:
+	virtual bool  PushToQueue(void *packet, int len) = 0;
+	//带超时等待机制的take
+	virtual int32_t TakeFromQueue(void *packet, int& len, int waittime = 200){};//默认实现
+	virtual int32_t TakeFromQueue(void *packet, int& len){};//默认实现
+
+	virtual void	ClearQueue() = 0;
+	virtual	bool 	QueueIsEmpty() = 0;
+
+};
+
+
 class DynFifoQueue
 {
 
@@ -45,9 +63,12 @@ public:
 	~DynFifoQueue();
 
 public:
-	bool  			PushToDynQueue(void *packet, unsigned int len);
-	int32_t 		TakeFromDynQueue(void *packet, unsigned int& len, int waittime = 200);
-	void			ClearDynQueue();
+
+	virtual bool  PushToQueue(void *packet, int len);
+	virtual int32_t TakeFromQueue(void *packet, int& len, int waittime = 200);
+
+	virtual void	ClearQueue();
+	virtual	bool 	QueueIsEmpty();
 
 
 private:
@@ -61,9 +82,7 @@ private:
 	std::list<dynamic_fifoqueue_t *>  	m_dyn_list;
 
 };
-
-
-class FifoQueue 
+class FifoQueue : public IBaseQueue
 {
 	
 	public:
@@ -71,11 +90,11 @@ class FifoQueue
 		~FifoQueue();
 
 	public:
-		bool  			PushToQueue(void *packet, int len);
-		int32_t 		TakeFromQueue(void *packet, int& len, int waittime =200);
+		virtual bool  PushToQueue(void *packet, int len);
+		virtual int32_t TakeFromQueue(void *packet, int& len, int waittime = 200);
 
-		void			ClearQueue();
-		bool 			QueueIsEmpty();
+		virtual void	ClearQueue();
+		virtual	bool 	QueueIsEmpty();
 
 	private:
 
@@ -87,6 +106,55 @@ class FifoQueue
 
 	
 };
+
+
+
+//高效队列，强烈建议使用以下两种队列接口。
+class RingQueue : public IBaseQueue
+{
+
+public:
+	RingQueue();
+	~RingQueue();
+
+public:
+	virtual bool  PushToQueue(void *packet, int len);
+	virtual int32_t TakeFromQueue(void *packet, int& len, bool erase);
+
+	virtual void	ClearQueue();
+	virtual	bool 	QueueIsEmpty();
+
+private:
+
+	fifoqueue_t ringqueue[FIFODEEP];
+	int queue_head;
+	int queue_tail;
+	ILock	*queuelock;
+};
+class DynRingQueue : public IBaseQueue
+{
+public:
+	DynRingQueue(int ring_deep, int data_deep);
+	~DynRingQueue();
+
+public:
+	virtual bool  PushToQueue(void *packet, int len);
+	virtual int32_t TakeFromQueue(void *packet, int& len, bool erase);
+
+	virtual void	ClearQueue();
+	virtual	bool 	QueueIsEmpty();
+
+private:
+	
+	ILock	*queuelock;
+	int queue_head;
+	int queue_tail;
+	unsigned int p_ring_deep;
+	unsigned int p_data_deep;
+	dynamic_fifoqueue_t *ptr_ring;
+
+};
+
 
 
 

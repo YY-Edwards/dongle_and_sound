@@ -37,7 +37,7 @@ DynFifoQueue::DynFifoQueue(int fifo_deep, int data_deep)
 
 DynFifoQueue::~DynFifoQueue()
 {
-	ClearDynQueue();//清空队列
+	ClearQueue();//清空队列
 	if (queuelock != NULL)
 	{
 		delete queuelock;
@@ -68,7 +68,7 @@ DynFifoQueue::~DynFifoQueue()
 }
 
 
-void DynFifoQueue::ClearDynQueue()
+void DynFifoQueue::ClearQueue()
 {
 	queuelock->Lock();
 	m_dyn_list.clear();
@@ -76,7 +76,7 @@ void DynFifoQueue::ClearDynQueue()
 
 }
 
-bool DynFifoQueue::PushToDynQueue(void *packet, unsigned int len)
+bool DynFifoQueue::PushToQueue(void *packet, int len)
 {
 	if (ptr_fifo == NULL)
 	{
@@ -106,7 +106,7 @@ bool DynFifoQueue::PushToDynQueue(void *packet, unsigned int len)
 
 }
 
-int32_t DynFifoQueue::TakeFromDynQueue(void *packet, unsigned int& len, int waittime)
+int32_t DynFifoQueue::TakeFromQueue(void *packet, int& len, int waittime)
 {
 
 	dynamic_fifoqueue_t *sBuffer = NULL;
@@ -136,6 +136,13 @@ int32_t DynFifoQueue::TakeFromDynQueue(void *packet, unsigned int& len, int wait
 
 
 }
+
+bool  DynFifoQueue::QueueIsEmpty()
+{
+	return(m_dyn_list.empty());
+}
+
+
 
 
 FifoQueue::FifoQueue()
@@ -248,6 +255,255 @@ int32_t FifoQueue::TakeFromQueue(void *packet, int& len, int waittime)
 
 
 }
+
+
+
+RingQueue::RingQueue()
+{
+	queue_head = 0;
+	queue_tail = 0;
+	for (int i = 0; i < FIFODEEP; i++){
+		memset(&(ringqueue[i].data), 0x00, DATADEEP);
+		memset(&(ringqueue[i].len), 0x00, sizeof(uint8_t));
+	}
+	queuelock = new Mutex((const char *)"queuelocker");
+
+}
+RingQueue::~RingQueue()
+{
+	ClearQueue();//清空队列
+	if (queuelock != NULL)
+	{
+		delete queuelock;
+		queuelock = NULL;
+	}
+}
+bool RingQueue::PushToQueue(void *packet, int len)
+{
+	fifoqueue_t * ptr;
+	int next_index = 0;
+	int ret = false;
+	if (len>DATADEEP)return false;//data overout
+
+	queuelock->Lock();
+
+	ptr = (fifoqueue_t *)(&ringqueue[queue_head]);
+
+	memcpy(ptr->data, packet, len);
+	ptr->len = len;
+
+	next_index = queue_head + 1;
+	if (next_index != queue_tail)
+	{
+		if (next_index == FIFODEEP){
+			next_index = 0;
+		}
+		queue_head = next_index;
+		ret = true;//okay
+	}
+	else
+	{
+		ret = false;//full
+	}
+
+	queuelock->Unlock();
+
+	return ret;
+}
+int32_t RingQueue::TakeFromQueue(void *packet, int& len, bool erase)
+{
+	int ret = 0;
+
+	queuelock->Lock();
+
+	int snap_head = queue_head;
+	if (snap_head != queue_tail)
+	{
+		memcpy(packet, ringqueue[queue_tail].data, ringqueue[queue_tail].len);
+		len = ringqueue[queue_tail].len;
+
+		if (true == erase){//是否指向下一个地址
+			queue_tail = queue_tail + 1;
+			if (queue_tail == FIFODEEP)
+			{
+				queue_tail = 0;
+			}
+		}
+		ret = 0;//success
+	}
+	else
+	{
+		ret = 1;//empty
+	}
+	queuelock->Unlock();
+
+	return  ret;
+}
+void RingQueue::ClearQueue()
+{
+	queuelock->Lock();
+	queue_tail = queue_head;
+	queuelock->Unlock();
+}
+bool RingQueue::QueueIsEmpty()
+{
+	int mid_flag = queue_head;//middle temp
+	if (mid_flag != queue_tail)
+	{
+		return false;
+	}
+	else
+	{
+		return true;
+	}
+
+}
+
+
+DynRingQueue::DynRingQueue(int ring_deep, int data_deep)
+:queuelock(NULL)
+, ptr_ring(NULL)
+{
+
+#ifdef WIN32
+	queuelock = new CriSection();
+#else
+	queuelock = new Mutex((const char *)"dynqueuelocker");
+#endif
+
+
+	p_ring_deep = ring_deep;
+	p_data_deep = data_deep;
+	ptr_ring = new dynamic_fifoqueue_t[p_ring_deep];//分配队列深度内存
+	for (int i = 0; i < p_ring_deep; i++)
+	{
+		(ptr_ring + i)->data = new char[p_data_deep];//分配队列宽度内存
+		memset((ptr_ring + i)->data, 0x00, p_data_deep);//清零
+		(ptr_ring + i)->len = 0;
+	}
+
+	queue_head = 0;
+	queue_tail = 0;
+
+	log_debug("dynamic ring queue created\n");
+}
+DynRingQueue::~DynRingQueue()
+{
+	ClearQueue();//清空队列
+	if (queuelock != NULL)
+	{
+		delete queuelock;
+		queuelock = NULL;
+	}
+
+	if (ptr_ring != NULL)//是否释放动态内存
+	{
+		for (unsigned int i = 0; i < p_ring_deep; i++)
+		{
+			if (((ptr_ring + i)->data) != NULL)
+			{
+				delete[]((ptr_ring + i)->data);
+				(ptr_ring + i)->data = NULL;
+			}
+		}
+
+		delete[]ptr_ring;
+		ptr_ring = NULL;
+	}
+	log_debug("delete:dynamic ring queue\n");
+
+}
+void DynRingQueue::ClearQueue()
+{
+	queuelock->Lock();
+	queue_tail = queue_head;
+	queuelock->Unlock();
+
+}
+bool DynRingQueue::PushToQueue(void *packet, int len)
+{
+	dynamic_fifoqueue_t * ptr =NULL;
+	int next_index = 0;
+	int ret = false;
+	if (len>p_data_deep)return false;//data overout
+
+	queuelock->Lock();
+
+	ptr = (dynamic_fifoqueue_t *)(&ptr_ring[queue_head]);
+
+	memcpy(ptr->data, packet, len);
+	ptr->len = len;
+
+	next_index = queue_head + 1;
+	if (next_index != queue_tail)
+	{
+		if (next_index == p_ring_deep){
+			next_index = 0;
+		}
+		queue_head = next_index;
+		ret = true;//okay
+	}
+	else
+	{
+		ret = false;//full
+	}
+
+	queuelock->Unlock();
+
+	return ret;
+
+}
+int32_t DynRingQueue::TakeFromQueue(void *packet,  int& len, bool erase)
+{
+
+	int ret = 0;
+
+	queuelock->Lock();
+
+	int snap_head = queue_head;
+	if (snap_head != queue_tail)
+	{
+		memcpy(packet, ptr_ring[queue_tail].data, ptr_ring[queue_tail].len);
+		len = ptr_ring[queue_tail].len;
+		if (true == erase){//是否指向下一个地址
+
+			queue_tail = queue_tail + 1;
+			if (queue_tail == p_ring_deep)
+			{
+				queue_tail = 0;
+			}
+		}
+	
+		ret = 0;//success
+	}
+	else
+	{
+		ret = 1;//empty
+	}
+	queuelock->Unlock();
+
+	return  ret;
+
+}
+bool DynRingQueue::QueueIsEmpty()
+{
+	int mid_flag = queue_head;//middle temp
+	if (mid_flag != queue_tail)
+	{
+		return false;
+	}
+	else
+	{
+		return true;
+	}
+
+}
+
+
+
+
+
+
 
 
 

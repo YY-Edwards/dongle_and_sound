@@ -149,7 +149,14 @@ int MySynSem::SemWait(int waittime)
 	int ret = 0;
 
 #ifdef WIN32
-	ret = WaitForSingleObject(m_sem, waittime);//等待信号量触发,waittime:/ms
+	int wait_time = 0;
+	if (0 == waittime)
+		wait_time = INFINITE;
+	else
+	{
+		wait_time = waittime;
+	}
+	ret = WaitForSingleObject(m_sem, wait_time);//等待信号量触发,waittime:/ms
 	if ((ret == WAIT_ABANDONED) || (ret == WAIT_FAILED))
 	{
 		ret = -1;
@@ -159,12 +166,19 @@ int MySynSem::SemWait(int waittime)
 	struct timeval now;
 	struct timespec outtime;
 
-	gettimeofday(&now, NULL);
-	timeraddMS(&now, waittime);//ms级别
-	outtime.tv_sec = now.tv_sec;
-	outtime.tv_nsec = now.tv_usec * 1000;
-	while ((ret = sem_timedwait(&m_sem, &outtime) != 0) && errno == EINTR)//linux 下暂时未测试其效果
-		continue;
+	if (0 != waittime)
+	{
+		gettimeofday(&now, NULL);
+		timeraddMS(&now, waittime);//ms级别
+		outtime.tv_sec = now.tv_sec;
+		outtime.tv_nsec = now.tv_usec * 1000;
+		while ((ret = sem_timedwait(&m_sem, &outtime)) != 0 && errno == EINTR)
+			continue;
+	}
+	else
+	{
+		ret = sem_wait(&m_sem);//阻塞
+	}
 
 	if (ret != 0)
 	{
@@ -235,7 +249,11 @@ int MySynCond::CondWait(int waittime)
 #ifdef WIN32
 	int wait_time = 0;
 	if (0 == waittime)
-		 wait_time = INFINITE;
+		wait_time = INFINITE;
+	else
+	{
+		wait_time = waittime;
+	}
 
 	ret = WaitForSingleObject(m_cond, wait_time);//等待信号量触发,waittime:/ms
 	if ((ret == WAIT_ABANDONED) || (ret == WAIT_FAILED))
@@ -250,7 +268,7 @@ int MySynCond::CondWait(int waittime)
 
 	pthread_mutex_lock(&m_mutex);
 
-	if(waittime!=0)
+	if (waittime != 0)
 	{
 		gettimeofday(&now, NULL);
 		timeraddMS(&now, waittime);//ms级别
@@ -334,8 +352,7 @@ MyCreateThread::MyCreateThread(void *(*func)(void *), void *ptr)
 	int err =0;
 	err = pthread_create(&thread_handle, NULL, func, ptr);
 	if (err != 0){
-		//fprintf(stderr, "func create fail...\n");
-		log_warning("thread create fail...\n");
+		fprintf(stderr, "func create fail...\n");
 	}
 	//pthread_detach(thread_handle);//分离创建的线程，线程退出后资源自动回收
 }
