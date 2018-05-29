@@ -208,15 +208,23 @@ void CSerialDongle::close_dongle(void)
 	if (m_wComm != 0)
 	{
 		auto w_ret = aio_cancel(m_wComm, &w_cbp);
-		//if (w_ret != AIO_CANCELED)
-			log_debug("m_wComm aio_cancle:%d, errno:%s\n", w_ret, strerror(errno));
+		if (w_ret < 0 )
+			log_debug("m_wComm aio_cancle errno:%s\n", strerror(errno));
+		else
+		{
+			log_debug("m_wComm aio_cancle return:%d\n", w_ret);
+		}
 	}
 	
 	if (m_rComm != 0)
 	{
 		auto r_ret = aio_cancel(m_rComm, &r_cbp);
-		//if (r_ret != AIO_CANCELED)
-			log_debug("m_rComm aio_cancle:%d, errno:%s\n", r_ret, strerror(errno));
+		if (r_ret < 0)
+			log_debug("m_rComm aio_cancle errno:%s\n", strerror(errno));
+		else
+		{
+			log_debug("m_rComm aio_cancle return:%d\n", r_ret);
+		}
 	}
 
 	if (serial_tx_thread_p != nullptr)
