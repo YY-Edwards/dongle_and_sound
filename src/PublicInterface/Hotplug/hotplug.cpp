@@ -191,7 +191,7 @@ int CHotplug::HotplugMonitorThreadFunc()
 		return_value = pselect(s_netlink_client + 1, &readfds, NULL, NULL, &timeout, NULL);
 		if (return_value < 0)
 		{
-			log_debug("pselect netlink fail:%s\n", strerror(errno));
+			log_warning("pselect netlink fail:%s\n", strerror(errno));
 			return_value = -1;
 			break;
 		}
