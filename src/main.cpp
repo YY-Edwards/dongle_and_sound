@@ -76,6 +76,10 @@ int main(int argc, char** argv)
 	{
 		log_warning("can't open :%s\n", argv[1]);
 		close(file_fd);
+		netlink_server.monitor_stop();
+		m_startdongle->stop();
+		delete m_startdongle;
+		return -1;
 	}
 	auto file_length = lseek(file_fd, 0 , SEEK_END);
 	lseek(file_fd, 0, SEEK_SET);
