@@ -167,6 +167,14 @@ int	CSerialDongle::open_dongle(const char *lpsz_Device)
 		close(pcm_voice_fd);
 		//return;
 	}
+	else
+	{
+		/* 清空文件 */
+		ftruncate(pcm_voice_fd, 0);
+
+		/* 重新设置文件偏移量 */
+		lseek(pcm_voice_fd, 0, SEEK_SET);
+	}
 	return ret;
 
 }
