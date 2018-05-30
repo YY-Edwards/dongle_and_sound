@@ -76,7 +76,7 @@ CHotplug::CHotplug()
 	log_debug("New: CHotplug \n");
 	pThis = this;
 	event_queue_ptr = nullptr;
-	event_queue_ptr = new DynRingQueue(30, 512);
+	event_queue_ptr = new DynRingQueue(30, 1200);
 	memset(&my_netlink_addr, 0x00, sizeof(my_netlink_addr));
 
 }
@@ -220,7 +220,7 @@ int CHotplug::HotplugMonitorThreadFunc()
 				replace_char(msg, rt.nbytes, '\0', '\n');//替换用以隔断的结束符
 				msg[rt.nbytes] = '\0';
 				msg[rt.nbytes + 1] = '\0';
-				auto return_result = event_queue_ptr->PushToQueue(msg, rt.nbytes);
+				auto return_result = event_queue_ptr->PushToQueue(msg, (rt.nbytes+2));
 				if (return_result != true)
 				{
 					log_warning("event_queue_ptr push: full!!!\n");
