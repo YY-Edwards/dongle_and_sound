@@ -216,7 +216,7 @@ int CHotplug::HotplugMonitorThreadFunc()
 			SocketRecv(s_netlink_client, (char *)msg, UEVENT_MSG_LEN, rt);
 			if (rt.nbytes > 0)
 			{
-				log_debug("rt.nbytes:%d\n", rt.nbytes);
+				//log_debug("rt.nbytes:%d\n", rt.nbytes);
 				replace_char(msg, rt.nbytes, '\0', '\n');//替换用以隔断的结束符
 				msg[rt.nbytes] = '\0';
 				msg[rt.nbytes + 1] = '\0';
@@ -277,6 +277,7 @@ int CHotplug::EventParseThreadFunc()
 	while (!set_thread_exit_flag)
 	{
 		queue_sem.SemWait(0);//block for waiting
+		if (set_thread_exit_flag)break;
 		auto ret = event_queue_ptr->TakeFromQueue(readbuff, read_nbytes, true);
 		if (0 == ret)
 		{
@@ -285,7 +286,7 @@ int CHotplug::EventParseThreadFunc()
 		}
 		else
 		{
-			log_debug(" event_queue: empty!!!\r\n");
+			log_debug("event_queue: empty!!!\r\n");
 		}
 
 	}
