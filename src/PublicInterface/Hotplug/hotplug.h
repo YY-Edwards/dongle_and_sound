@@ -9,11 +9,11 @@
 
 #define UEVENT_MSG_LEN 1500
 
-struct luther_gliethttp {
-	const char *action;
-	const char *path;
-	const char *subsystem;
-	const char *firmware;
+struct hotplug_info_t {
+	string action;
+	string path;
+	string subsystem;
+	string devname;
 	int major;
 	int minor;
 };
@@ -34,10 +34,15 @@ private:
 
 	static CHotplug *pThis;
 
-	string first_delim;
-	string second_delim;
-	string third_delim;
-	string hotplug_dev_name;
+	string libudev_delim;
+	string action_delim;
+	string devpath_delim;
+	string subsystem_delim;
+	string devname_delim;
+	string major_delim;
+	string minor_delim;
+
+	struct hotplug_info_t hotplug_info;
 
 	/*
 	声明socket接口类
@@ -68,7 +73,7 @@ private:
 	/*
 	parse the event
 	*/
-	void parse_event(const char *msg, struct luther_gliethttp *luther_ptr);
+	void parse_event(const char *msg);
 	
 
 	bool set_thread_exit_flag;

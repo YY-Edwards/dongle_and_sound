@@ -175,10 +175,8 @@ int CHotplug::HotplugMonitorThreadFunc()
 	timeout.tv_sec = SELECT_TIMEOUT;
 	timeout.tv_nsec = 0;
 	transresult_t rt;
-	struct luther_gliethttp luther_gliethttp;
 	char msg[UEVENT_MSG_LEN + 2];
 	memset(msg, 0x00, (UEVENT_MSG_LEN + 2));
-	memset(&luther_gliethttp, 0x00, sizeof(luther_gliethttp));
 
 
 	log_debug("HotplugMonitorThreadFunc is running, pid:%ld\n", syscall(SYS_gettid));
@@ -206,10 +204,10 @@ int CHotplug::HotplugMonitorThreadFunc()
 			if (rt.nbytes > 0)
 			{
 				log_debug("rt.nbytes:%d\n", rt.nbytes);
-				replace_char(msg, rt.nbytes, '\0', '\n');
+				replace_char(msg, rt.nbytes, '\0', '\n');//替换用以隔断的结束符
 				msg[rt.nbytes] = '\0';
 				msg[rt.nbytes + 1] = '\0';
-				parse_event(msg, &luther_gliethttp);
+				parse_event(msg);
 			}
 			else if ((rt.nbytes == -1) && (rt.nresult == 1))
 			{
@@ -235,28 +233,108 @@ int CHotplug::HotplugMonitorThreadFunc()
 
 
 }
-void CHotplug::parse_event(const char *msg, struct luther_gliethttp *luther_ptr)
+void CHotplug::parse_event(const char *msg)
 {
-	string temp_str = msg;
+	string temp_str = msg;//转换为string类型
+	string tt = "";
 
 	//log_debug("recv:%s\n", msg);
-	log("recv:\n");
-	log("%s\n", msg);
-	int last = 0;
-	int index = temp_str.find(first_delim, last);//"libudev"
-	if (index != std::string::npos) //hint:  here "string::npos"means find failed  
+	log("recv hotplug info:\n");
+	//log("%s\n", msg);
+	auto  last = 0;
+	auto  end_index = 0;
+	auto  start_index = temp_str.find(libudev_delim, last);//"libudev"
+	if (start_index != string::npos) //hint:  here "string::npos"means find failed  
 	{
-		index = temp_str.find(second_delim, last);//"ACTION"
-		if (index != std::string::npos)
+		start_index = temp_str.find(action_delim, last);//"ACTION"
+		if (start_index != string::npos)
 		{
-			index = temp_str.find_first_of('=', index);//"="
-			int end_index = temp_str.find_first_of('\n', index);//"\n"
-			string tt = temp_str.substr((index + 1), (end_index - index -1));
-			log_debug("\n**yoyo**\n");
-			log_debug("find action:%s\n", tt.c_str());
-			log_debug("\n**yoyo**\n");
+			start_index = temp_str.find_first_of('=', start_index);//"="
+			end_index = temp_str.find_first_of('\n', start_index);//"\n"
+			tt = temp_str.substr((start_index + 1), (end_index - start_index - 1));
+			if (!tt.empty())
+			{
+				hotplug_info.action = tt;//copy "action"
+			}
+			tt.clear();//clear tt
 		}
 
+		start_index = end_index;//更新偏移
+		start_index = temp_str.find(devpath_delim, start_index);//"DEVPATH"
+		if (start_index != string::npos)
+		{
+			start_index = temp_str.find_first_of('=', start_index);//"="
+			end_index = temp_str.find_first_of('\n', start_index);//"\n"
+			tt = temp_str.substr((start_index + 1), (end_index - start_index - 1));
+			if (!tt.empty())
+			{
+				hotplug_info.path = tt;//copy "devpath"
+			}
+			tt.clear();//clear tt
+		}
+
+		start_index = end_index;//更新偏移
+		start_index = temp_str.find(subsystem_delim, start_index);//"SUBSYSTEM"
+		if (start_index != string::npos)
+		{
+			start_index = temp_str.find_first_of('=', start_index);//"="
+			end_index = temp_str.find_first_of('\n', start_index);//"\n"
+			tt = temp_str.substr((start_index + 1), (end_index - start_index - 1));
+			if (!tt.empty())
+			{
+				hotplug_info.subsystem = tt;//copy "subsystem"
+			}
+			tt.clear();//clear tt
+		}
+
+		start_index = end_index;//更新偏移
+		start_index = temp_str.find(devname_delim, start_index);//"DEVNAME"
+		if (start_index != string::npos)
+		{
+			start_index = temp_str.find_first_of('=', start_index);//"="
+			end_index = temp_str.find_first_of('\n', start_index);//"\n"
+			tt = temp_str.substr((start_index + 1), (end_index - start_index - 1));
+			if (!tt.empty())
+			{
+				hotplug_info.devname = tt;//copy "devname"
+			}
+			tt.clear();//clear tt
+		}
+
+		start_index = end_index;//更新偏移
+		start_index = temp_str.find(major_delim, start_index);//"MAJOR"
+		if (start_index != string::npos)
+		{
+			start_index = temp_str.find_first_of('=', start_index);//"="
+			end_index = temp_str.find_first_of('\n', start_index);//"\n"
+			tt = temp_str.substr((start_index + 1), (end_index - start_index - 1));
+			if (!tt.empty())
+			{
+				sscanf(tt.c_str(), "%d",&(hotplug_info.major));//copy "major"
+			}
+			tt.clear();//clear tt
+		}
+
+		start_index = end_index;//更新偏移
+		start_index = temp_str.find(minor_delim, start_index);//"MINOR"
+		if (start_index != string::npos)
+		{
+			start_index = temp_str.find_first_of('=', start_index);//"="
+			end_index = temp_str.find_first_of('\n', start_index);//"\n"
+			tt = temp_str.substr((start_index + 1), (end_index - start_index - 1));
+			if (!tt.empty())
+			{
+				sscanf(tt.c_str(), "%d", &(hotplug_info.minor));//copy "minor"
+			}
+			tt.clear();//clear tt
+		}
+
+		log_debug("action:%s\n", hotplug_info.action);
+		log_debug("devpath:%s\n", hotplug_info.path);
+		log_debug("subsystem:%s\n", hotplug_info.subsystem);
+		log_debug("devname:%s\n", hotplug_info.devname);
+		log_debug("major:%d\n", hotplug_info.major);
+		log_debug("minor:%d\n", hotplug_info.minor);
 	}
 
 }
@@ -265,10 +343,22 @@ void CHotplug::parse_event(const char *msg, struct luther_gliethttp *luther_ptr)
 
 void CHotplug::monitor_start(void)
 {
-	first_delim = "libudev";
-	second_delim = "ACTION";
-	third_delim = "SUBSYSTEM";
-	hotplug_dev_name = "";
+	libudev_delim = "libudev";
+	action_delim = "ACTION";
+	devpath_delim = "DEVPATH";
+	subsystem_delim = "SUBSYSTEM";
+	devname_delim = "DEVNAME";
+	major_delim = "MAJOR";
+	minor_delim = "MINOR";
+
+	hotplug_info.action = "";
+	hotplug_info.path = "";
+	hotplug_info.subsystem = "";
+	hotplug_info.devname = "";
+	hotplug_info.major = 0;
+	hotplug_info.minor = 0;
+
+
 	init_netlink_socket(false);
 	if (hotplug_monitor_thread_p == nullptr)
 	{
@@ -279,14 +369,12 @@ void CHotplug::monitor_start(void)
 void CHotplug::monitor_stop(void)
 {
 	log_debug("SetThreadExit: HotplugMonitorThread\n");
-	hotplug_dev_name = "";
 	SetThreadExitFlag();
 	if (hotplug_monitor_thread_p != nullptr)
 	{
 		delete hotplug_monitor_thread_p;
 		hotplug_monitor_thread_p = nullptr;
 	}
-
 
 }
 
