@@ -21,6 +21,7 @@ bool CStartDongleAndSound::start(const char *lpszDevice, const char *pcm_name)
 	result = m_serialdongle.open_dongle(lpszDevice);
 	if (result != true)
 	{
+		log_warning("open dongle failure!\n");
 		return false;
 	}
 	

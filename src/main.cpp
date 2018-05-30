@@ -65,7 +65,7 @@ int main(int argc, char** argv)
 	//Æô¶¯ÈÈ²å°Î¼à²â
 	netlink_server.monitor_start();
 
-	const char *dev_path = "/dev/ttyACM0";
+	const char *dev_path = "/dev/ttyACM1";
 
 	m_startdongle->start(dev_path);
 
