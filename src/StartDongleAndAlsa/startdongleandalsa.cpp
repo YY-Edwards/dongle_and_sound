@@ -16,7 +16,7 @@ bool CStartDongleAndSound::start(const char *lpszDevice, const char *pcm_name)
 {
 	auto  result = false;
 	//timer
-	timer();
+	//timer();
 	//dongle
 	result = m_serialdongle.open_dongle(lpszDevice);
 	if (result != true)
@@ -33,7 +33,7 @@ bool CStartDongleAndSound::start(const char *lpszDevice, const char *pcm_name)
 }
 void CStartDongleAndSound::stop()
 {
-	timer_delete(timerid);
+	//timer_delete(timerid);
 	m_serialdongle.close_dongle();
 
 }

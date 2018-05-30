@@ -239,10 +239,12 @@ void CHotplug::parse_event(const char *msg)
 	string tt = "";
 
 	//log_debug("recv:%s\n", msg);
-	log("recv hotplug info:\n");
-	//log("%s\n", msg);
+	log("%s\n", msg);
+	//log_debug("recv hotplug info:\n");
 	auto  last = 0;
 	auto  end_index = 0;
+
+#if 1
 	auto  start_index = temp_str.find(libudev_delim, last);//"libudev"
 	if (start_index != string::npos) //hint:  here "string::npos"means find failed  
 	{
@@ -257,85 +259,104 @@ void CHotplug::parse_event(const char *msg)
 				hotplug_info.action = tt;//copy "action"
 			}
 			tt.clear();//clear tt
-		}
 
-		start_index = end_index;//更新偏移
-		start_index = temp_str.find(devpath_delim, start_index);//"DEVPATH"
-		if (start_index != string::npos)
-		{
-			start_index = temp_str.find_first_of('=', start_index);//"="
-			end_index = temp_str.find_first_of('\n', start_index);//"\n"
-			tt = temp_str.substr((start_index + 1), (end_index - start_index - 1));
-			if (!tt.empty())
+			start_index = end_index;//更新偏移
+			start_index = temp_str.find(devpath_delim, start_index);//"DEVPATH"
+			if (start_index != string::npos)
 			{
-				hotplug_info.path = tt;//copy "devpath"
-			}
-			tt.clear();//clear tt
-		}
+				start_index = temp_str.find_first_of('=', start_index);//"="
+				end_index = temp_str.find_first_of('\n', start_index);//"\n"
+				tt = temp_str.substr((start_index + 1), (end_index - start_index - 1));
+				if (!tt.empty())
+				{
+					hotplug_info.path = tt;//copy "devpath"
+				}
+				tt.clear();//clear tt
 
-		start_index = end_index;//更新偏移
-		start_index = temp_str.find(subsystem_delim, start_index);//"SUBSYSTEM"
-		if (start_index != string::npos)
-		{
-			start_index = temp_str.find_first_of('=', start_index);//"="
-			end_index = temp_str.find_first_of('\n', start_index);//"\n"
-			tt = temp_str.substr((start_index + 1), (end_index - start_index - 1));
-			if (!tt.empty())
-			{
-				hotplug_info.subsystem = tt;//copy "subsystem"
-			}
-			tt.clear();//clear tt
-		}
+				start_index = end_index;//更新偏移
+				start_index = temp_str.find(subsystem_delim, start_index);//"SUBSYSTEM"
+				if (start_index != string::npos)
+				{
+					start_index = temp_str.find_first_of('=', start_index);//"="
+					end_index = temp_str.find_first_of('\n', start_index);//"\n"
+					tt = temp_str.substr((start_index + 1), (end_index - start_index - 1));
+					if (!tt.empty())
+					{
+						hotplug_info.subsystem = tt;//copy "subsystem"
+					}
+					tt.clear();//clear tt
 
-		start_index = end_index;//更新偏移
-		start_index = temp_str.find(devname_delim, start_index);//"DEVNAME"
-		if (start_index != string::npos)
-		{
-			start_index = temp_str.find_first_of('=', start_index);//"="
-			end_index = temp_str.find_first_of('\n', start_index);//"\n"
-			tt = temp_str.substr((start_index + 1), (end_index - start_index - 1));
-			if (!tt.empty())
-			{
-				hotplug_info.devname = tt;//copy "devname"
-			}
-			tt.clear();//clear tt
-		}
+					start_index = end_index;//更新偏移
+					start_index = temp_str.find(devname_delim, start_index);//"DEVNAME"
+					if (start_index != string::npos)
+					{
+						start_index = temp_str.find_first_of('=', start_index);//"="
+						end_index = temp_str.find_first_of('\n', start_index);//"\n"
+						tt = temp_str.substr((start_index + 1), (end_index - start_index - 1));
+						if (!tt.empty())
+						{
+							hotplug_info.devname = tt;//copy "devname"
+						}
+						tt.clear();//clear tt
 
-		start_index = end_index;//更新偏移
-		start_index = temp_str.find(major_delim, start_index);//"MAJOR"
-		if (start_index != string::npos)
-		{
-			start_index = temp_str.find_first_of('=', start_index);//"="
-			end_index = temp_str.find_first_of('\n', start_index);//"\n"
-			tt = temp_str.substr((start_index + 1), (end_index - start_index - 1));
-			if (!tt.empty())
-			{
-				sscanf(tt.c_str(), "%d",&(hotplug_info.major));//copy "major"
-			}
-			tt.clear();//clear tt
-		}
+						start_index = end_index;//更新偏移
+						start_index = temp_str.find(major_delim, start_index);//"MAJOR"
+						if (start_index != string::npos)
+						{
+							start_index = temp_str.find_first_of('=', start_index);//"="
+							end_index = temp_str.find_first_of('\n', start_index);//"\n"
+							tt = temp_str.substr((start_index + 1), (end_index - start_index - 1));
+							if (!tt.empty())
+							{
+								sscanf(tt.c_str(), "%d", &(hotplug_info.major));//copy "major"
+							}
+							tt.clear();//clear tt
 
-		start_index = end_index;//更新偏移
-		start_index = temp_str.find(minor_delim, start_index);//"MINOR"
-		if (start_index != string::npos)
-		{
-			start_index = temp_str.find_first_of('=', start_index);//"="
-			end_index = temp_str.find_first_of('\n', start_index);//"\n"
-			tt = temp_str.substr((start_index + 1), (end_index - start_index - 1));
-			if (!tt.empty())
-			{
-				sscanf(tt.c_str(), "%d", &(hotplug_info.minor));//copy "minor"
-			}
-			tt.clear();//clear tt
-		}
+							start_index = end_index;//更新偏移
+							start_index = temp_str.find(minor_delim, start_index);//"MINOR"
+							if (start_index != string::npos)
+							{
+								start_index = temp_str.find_first_of('=', start_index);//"="
+								end_index = temp_str.find_first_of('\n', start_index);//"\n"
+								tt = temp_str.substr((start_index + 1), (end_index - start_index - 1));
+								if (!tt.empty())
+								{
+									sscanf(tt.c_str(), "%d", &(hotplug_info.minor));//copy "minor"
+								}
+								tt.clear();//clear tt
 
-		log_debug("action:%s\n", hotplug_info.action);
-		log_debug("devpath:%s\n", hotplug_info.path);
-		log_debug("subsystem:%s\n", hotplug_info.subsystem);
-		log_debug("devname:%s\n", hotplug_info.devname);
-		log_debug("major:%d\n", hotplug_info.major);
-		log_debug("minor:%d\n", hotplug_info.minor);
-	}
+								start_index = end_index;//更新偏移
+								start_index = temp_str.find(id_driver_delim, start_index);//"ID_USB_DRIVER"
+								if (start_index != string::npos)
+								{
+									start_index = temp_str.find_first_of('=', start_index);//"="
+									end_index = temp_str.find_first_of('\n', start_index);//"\n"
+									tt = temp_str.substr((start_index + 1), (end_index - start_index - 1));
+									if (!tt.empty())
+									{
+										hotplug_info.id_driver = tt;//copy "id_driver"
+									}
+									tt.clear();//clear tt
+
+									log_debug("recv hotplug info:\n");
+									log_debug("action:%s\n", hotplug_info.action.c_str());
+									log_debug("devpath:%s\n", hotplug_info.path.c_str());
+									log_debug("subsystem:%s\n", hotplug_info.subsystem.c_str());
+									log_debug("devname:%s\n", hotplug_info.devname.c_str());
+									log_debug("major:%d\n", hotplug_info.major);
+									log_debug("minor:%d\n", hotplug_info.minor);
+									log_debug("id_driver:%s\n", hotplug_info.id_driver.c_str());
+
+								}//end find "ID_USB_DRIVER"
+							}//end find "MINOR"
+						}//end find "MAJOR"
+					}//end find "DEVNAME"
+				}//end find "SUBSYSTEM"
+			}//end find "DEVPATH"
+		}//end find "ACTION"
+	}//end find "libudev"
+
+#endif
 
 }
 
@@ -350,6 +371,7 @@ void CHotplug::monitor_start(void)
 	devname_delim = "DEVNAME";
 	major_delim = "MAJOR";
 	minor_delim = "MINOR";
+	id_driver_delim = "ID_USB_DRIVER";
 
 	hotplug_info.action = "";
 	hotplug_info.path = "";
@@ -357,6 +379,7 @@ void CHotplug::monitor_start(void)
 	hotplug_info.devname = "";
 	hotplug_info.major = 0;
 	hotplug_info.minor = 0;
+	hotplug_info.id_driver = "";
 
 
 	init_netlink_socket(false);

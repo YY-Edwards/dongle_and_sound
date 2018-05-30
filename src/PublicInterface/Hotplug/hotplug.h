@@ -14,8 +14,10 @@ struct hotplug_info_t {
 	string path;
 	string subsystem;
 	string devname;
-	int major;
+	int major;//ttyUSB:188;ttyACM:166
 	int minor;
+	string id_driver;//cdc_acm or other
+
 };
 
 class CHotplug
@@ -41,6 +43,7 @@ private:
 	string devname_delim;
 	string major_delim;
 	string minor_delim;
+	string id_driver_delim;
 
 	struct hotplug_info_t hotplug_info;
 
