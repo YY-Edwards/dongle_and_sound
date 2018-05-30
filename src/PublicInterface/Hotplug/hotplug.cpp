@@ -71,9 +71,12 @@ static void replace_char(char *ptr, int ptr_len, const  char old_c, const  char 
 CHotplug::CHotplug()
 :s_netlink_client(INVALID_SOCKET)
 ,hotplug_monitor_thread_p(nullptr)
+,event_parse_thread_p(nullptr)
 {
 	log_debug("New: CHotplug \n");
 	pThis = this;
+	event_queue_ptr = nullptr;
+	event_queue_ptr = new DynRingQueue(30, 512);
 	memset(&my_netlink_addr, 0x00, sizeof(my_netlink_addr));
 
 }
@@ -82,6 +85,11 @@ CHotplug::CHotplug()
 CHotplug::~CHotplug()
 {
 	SocketClose(s_netlink_client);
+	if (event_queue_ptr != nullptr)
+	{
+		delete event_queue_ptr;
+		event_queue_ptr = nullptr;
+	}
 	log_debug("Destory: CHotplug \n");
 
 }
@@ -153,6 +161,11 @@ void CHotplug::CreateHotplugMonitorThread()
 	hotplug_monitor_thread_p = new MyCreateThread(HotplugMonitorThread, this);
 }
 
+void CHotplug::CreateEventParseThread()
+{
+	event_parse_thread_p = new MyCreateThread(EventParseThread, this);
+}
+
 
 void *CHotplug::HotplugMonitorThread(void* p)
 {
@@ -207,7 +220,16 @@ int CHotplug::HotplugMonitorThreadFunc()
 				replace_char(msg, rt.nbytes, '\0', '\n');//替换用以隔断的结束符
 				msg[rt.nbytes] = '\0';
 				msg[rt.nbytes + 1] = '\0';
-				parse_event(msg);
+				auto return_result = event_queue_ptr->PushToQueue(msg, rt.nbytes);
+				if (return_result != true)
+				{
+					log_warning("event_queue_ptr push: full!!!\n");
+				}
+				else
+				{
+					queue_sem.SemPost();
+				}
+				//parse_event(msg);
 			}
 			else if ((rt.nbytes == -1) && (rt.nresult == 1))
 			{
@@ -233,13 +255,54 @@ int CHotplug::HotplugMonitorThreadFunc()
 
 
 }
+ 
+
+void *CHotplug::EventParseThread(void* p)
+{
+	auto *arg = (CHotplug*)p;
+	auto return_value = 0;
+	if (arg != NULL)
+	{
+		return_value = arg->EventParseThreadFunc();
+	}
+	return (void*)return_value;
+}
+int CHotplug::EventParseThreadFunc()
+{
+	log_debug("EventParseThreadFunc is running, pid:%ld\n", syscall(SYS_gettid));
+
+	int return_value = 0;
+	char readbuff[1500] = { 0 };
+	auto read_nbytes = 0;
+	while (!set_thread_exit_flag)
+	{
+		queue_sem.SemWait(0);//block for waiting
+		auto ret = event_queue_ptr->TakeFromQueue(readbuff, read_nbytes, true);
+		if (0 == ret)
+		{
+			parse_event(readbuff);
+			memset(readbuff, 0x00, sizeof(readbuff));
+		}
+		else
+		{
+			log_debug(" event_queue: empty!!!\r\n");
+		}
+
+	}
+
+	log_debug("exit EventParseThreadFunc: 0x%x\r\n", event_parse_thread_p->GetPthreadID());
+
+	return return_value;
+
+}
+
 void CHotplug::parse_event(const char *msg)
 {
 	string temp_str = msg;//转换为string类型
 	string tt = "";
 
 	//log_debug("recv:%s\n", msg);
-	log("%s\n", msg);
+	//log("%s\n", msg);
 	//log_debug("recv hotplug info:\n");
 	auto  last = 0;
 	auto  end_index = 0;
@@ -383,10 +446,16 @@ void CHotplug::monitor_start(void)
 
 
 	init_netlink_socket(false);
+	if (event_parse_thread_p == nullptr)
+	{
+		CreateEventParseThread();
+	}
 	if (hotplug_monitor_thread_p == nullptr)
 	{
 		CreateHotplugMonitorThread();
 	}
+
+
 }
 
 void CHotplug::monitor_stop(void)
@@ -398,6 +467,28 @@ void CHotplug::monitor_stop(void)
 		delete hotplug_monitor_thread_p;
 		hotplug_monitor_thread_p = nullptr;
 	}
+
+	if (event_parse_thread_p != nullptr)
+	{
+		queue_sem.SemPost();
+		delete event_parse_thread_p;
+		event_parse_thread_p = nullptr;
+	}
+
+	if ((event_queue_ptr->QueueIsEmpty()) != true)
+	{
+		event_queue_ptr->ClearQueue();
+	}
+
+	int ret = 0;
+	do
+	{
+		ret = queue_sem.SemWait(20);
+		if (ret = -1)break;
+
+	} while (0 != ret);
+		
+
 
 }
 

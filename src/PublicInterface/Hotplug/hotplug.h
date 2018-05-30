@@ -4,6 +4,7 @@
 #include "config.h"
 #include "syninterface.h"
 #include "socketwrap.h"
+#include "fifoqueue.h"
 #include <string>
 #include <linux/netlink.h>
 
@@ -47,6 +48,8 @@ private:
 
 	struct hotplug_info_t hotplug_info;
 
+	DynRingQueue *event_queue_ptr;
+
 	/*
 	声明socket接口类
 	*/
@@ -66,10 +69,19 @@ private:
 	int SocketBlock(HSocket hs, bool bblock);
 	void SocketRecv(HSocket hs, char *ptr, int nbytes, transresult_t &rt);
 	/*
-	Monitoring hotplu by netlink
+	Monitoring hotplug by netlink
 	*/
+	MySynSem queue_sem;//syn queue
+
 	MyCreateThread * hotplug_monitor_thread_p;
+	MyCreateThread * event_parse_thread_p;
+
 	void CreateHotplugMonitorThread();
+	void CreateEventParseThread();
+
+	static void *EventParseThread(void* p);
+	int EventParseThreadFunc();
+
 	static void *HotplugMonitorThread(void* p);
 	int HotplugMonitorThreadFunc();
 
