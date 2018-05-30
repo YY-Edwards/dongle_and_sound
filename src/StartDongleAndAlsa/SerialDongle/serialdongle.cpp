@@ -59,7 +59,7 @@ int	CSerialDongle::open_dongle(const char *lpsz_Device)
 	if ((r_ret<0) || (w_ret<0))
 	{
 		log_warning("open usart failed\n");
-		return r_ret;
+		return false;
 	}
 	else
 	{
@@ -175,7 +175,8 @@ int	CSerialDongle::open_dongle(const char *lpsz_Device)
 		/* 重新设置文件偏移量 */
 		lseek(pcm_voice_fd, 0, SEEK_SET);
 	}
-	return ret;
+
+	return true;
 
 }
 
