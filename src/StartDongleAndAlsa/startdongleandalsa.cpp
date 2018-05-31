@@ -27,7 +27,7 @@ bool CStartDongleAndSound::start(const char *lpszDevice, const char *pcm_name)
 			log_warning("open dongle failure!\n");
 			return false;
 		}
-
+		log_warning("open a new dongle\n");
 		m_new_dongle_ptr->send_dongle_initialization();
 	}
 
@@ -52,7 +52,6 @@ void CStartDongleAndSound::stop()
 {
 	//timer_delete(timerid);
 	//m_serialdongle.close_dongle();
-
 	while (dongle_map.size() > 0)
 	{
 		auto it = dongle_map.begin();
