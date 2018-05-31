@@ -33,6 +33,12 @@ public:
 	
 	void monitor_stop(void);
 
+//公共接口：设置回调
+public:
+	void set_hotplug_callback_func(void(*func_ptr)(hotplug_info_t *));
+private:
+	void(*hotplug_callback_func_ptr)(hotplug_info_t *);
+
 private:
 
 	static CHotplug *pThis;

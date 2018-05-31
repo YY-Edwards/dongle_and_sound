@@ -72,6 +72,7 @@ CHotplug::CHotplug()
 :s_netlink_client(INVALID_SOCKET)
 ,hotplug_monitor_thread_p(nullptr)
 ,event_parse_thread_p(nullptr)
+, hotplug_callback_func_ptr(nullptr)
 {
 	log_debug("New: CHotplug \n");
 	pThis = this;
@@ -402,7 +403,9 @@ void CHotplug::parse_event(const char *msg)
 									}
 									tt.clear();//clear tt
 
-									log_debug("recv hotplug info:\n");
+									//启用回调
+									hotplug_callback_func_ptr(&hotplug_info);
+								/*	log_debug("recv hotplug info:\n");
 									log_debug("action:%s\n", hotplug_info.action.c_str());
 									log_debug("devpath:%s\n", hotplug_info.path.c_str());
 									log_debug("subsystem:%s\n", hotplug_info.subsystem.c_str());
@@ -410,7 +413,7 @@ void CHotplug::parse_event(const char *msg)
 									log_debug("major:%d\n", hotplug_info.major);
 									log_debug("minor:%d\n", hotplug_info.minor);
 									log_debug("id_driver:%s\n", hotplug_info.id_driver.c_str());
-
+*/
 								}//end find "ID_USB_DRIVER"
 							}//end find "MINOR"
 						}//end find "MAJOR"
@@ -423,6 +426,7 @@ void CHotplug::parse_event(const char *msg)
 #endif
 
 }
+
 
 
 
@@ -493,3 +497,9 @@ void CHotplug::monitor_stop(void)
 
 }
 
+void CHotplug::set_hotplug_callback_func(void(*func_ptr)(hotplug_info_t *))
+{
+
+	hotplug_callback_func_ptr = func_ptr;//将func_ptr函数的入口地址赋值给hotplug_callback_func_ptr
+
+}

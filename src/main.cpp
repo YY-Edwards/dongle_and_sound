@@ -18,10 +18,10 @@
 #include "startdongleandalsa.h"
 #include "log.h"
 
-
 using namespace std;
 
 int exit_flag = 0;
+
 
 static void  signal_handler(int sig_num) {
 	// Reinstantiate signal handler
@@ -44,6 +44,42 @@ static void  signal_handler(int sig_num) {
 }
 
 
+
+static void extract_hotplug_info(hotplug_info_t *hpug_ptr)
+{
+	hotplug_info_t *temp_ptr = hpug_ptr;
+	string action_add = "add";
+	string action_remove = "remove";
+	string compare_subsystem = "tty";
+	string compare_id_driver = "cdc_acm";
+
+
+	/*log_debug("recv hotplug info:\n");
+	log_debug("action:%s\n", temp_ptr->action.c_str());
+	log_debug("devpath:%s\n", temp_ptr->path.c_str());
+	log_debug("subsystem:%s\n", temp_ptr->subsystem.c_str());
+	log_debug("devname:%s\n", temp_ptr->devname.c_str());
+	log_debug("major:%d\n", temp_ptr->major);
+	log_debug("minor:%d\n", temp_ptr->minor);
+	log_debug("id_driver:%s\n", temp_ptr->id_driver.c_str());*/
+	if ((temp_ptr->subsystem.compare(compare_subsystem) == 0) 
+		&& (temp_ptr->id_driver.compare(compare_id_driver) == 0)
+		)
+	{
+		log_debug("find the dongle device\n");
+		log_debug("action:%s\n", temp_ptr->action.c_str());
+		log_debug("devpath:%s\n", temp_ptr->path.c_str());
+		log_debug("devname:%s\n", temp_ptr->devname.c_str());
+	}
+	else
+	{
+		log_warning("find no dongle!\n");
+	}
+	
+
+
+}
+
 int main(int argc, char** argv)
 {
 	// Setup signal handler: quit on Ctrl-C
@@ -62,7 +98,8 @@ int main(int argc, char** argv)
 	CHotplug netlink_server;
 	CStartDongleAndSound *m_startdongle = new CStartDongleAndSound;
 
-	//启动热插拔监测
+	//设置热插拔信息回调函数，并启动热插拔监测
+	netlink_server.set_hotplug_callback_func(extract_hotplug_info);
 	netlink_server.monitor_start();
 
 	const char *dev_path = "/dev/ttyACM2";
