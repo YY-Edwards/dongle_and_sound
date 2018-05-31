@@ -54,14 +54,6 @@ static void extract_hotplug_info(hotplug_info_t *hpug_ptr)
 	string compare_id_driver = "cdc_acm";
 
 
-	/*log_debug("recv hotplug info:\n");
-	log_debug("action:%s\n", temp_ptr->action.c_str());
-	log_debug("devpath:%s\n", temp_ptr->path.c_str());
-	log_debug("subsystem:%s\n", temp_ptr->subsystem.c_str());
-	log_debug("devname:%s\n", temp_ptr->devname.c_str());
-	log_debug("major:%d\n", temp_ptr->major);
-	log_debug("minor:%d\n", temp_ptr->minor);
-	log_debug("id_driver:%s\n", temp_ptr->id_driver.c_str());*/
 	if ((temp_ptr->subsystem.compare(compare_subsystem) == 0) 
 		&& (temp_ptr->id_driver.compare(compare_id_driver) == 0)
 		)
