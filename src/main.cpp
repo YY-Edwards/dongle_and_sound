@@ -21,6 +21,8 @@
 using namespace std;
 
 int exit_flag = 0;
+char *pBuffer = nullptr;
+auto nread = 0;
 
 CStartDongleAndSound m_startdongle;
 
@@ -67,6 +69,7 @@ static void extract_hotplug_info(hotplug_info_t *hpug_ptr)//单线程模式
 		if (temp_ptr->action.compare(action_add) == 0)
 		{
 			m_startdongle.start(temp_ptr->devname.c_str());
+			if (pBuffer!=nullptr)m_startdongle.read_voice_file(pBuffer, nread);
 		}
 		else if (temp_ptr->action.compare(action_remove) == 0)
 		{
@@ -126,8 +129,10 @@ int main(int argc, char** argv)
 	}
 	auto file_length = lseek(file_fd, 0 , SEEK_END);
 	lseek(file_fd, 0, SEEK_SET);
-	char *pBuffer = new  char[file_length];
-	auto nread = read(file_fd, pBuffer, file_length);
+	//char *pBuffer = new  char[file_length];
+	pBuffer = new  char[file_length];
+	nread = read(file_fd, pBuffer, file_length);
+	//auto nread = read(file_fd, pBuffer, file_length);
 	if (nread == file_length)
 	{
 		log_debug("get file_fd file success\r\n");
@@ -137,7 +142,7 @@ int main(int argc, char** argv)
 		log_warning("get file_fd file no all\r\n");
 	}
 	//m_startdongle->read_voice_file(pBuffer, nread);
-	delete[] pBuffer;
+	//delete[] pBuffer;
 
 	for (;;)
 	{
@@ -146,6 +151,7 @@ int main(int argc, char** argv)
 			log_debug("...closing threads...\r\n");
 			netlink_server.monitor_stop();
 			m_startdongle.stop();
+			delete[] pBuffer;
 			//m_startdongle->stop();
 			//delete m_startdongle;
 			break;

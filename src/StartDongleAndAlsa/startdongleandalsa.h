@@ -21,8 +21,9 @@ public:
 public:
 
 private:
-	int max_dongle_num;
+	int next;
 	timer_t timerid;
+	bool timer_start_flag;
 	void timer();//用来定时(20ms)触发串口读，写数据，并将CSerialDongle对象句柄传入定时器信号处理函数中
 	//CSerialDongle m_serialdongle;
 	CSerialDongle *m_new_dongle_ptr;

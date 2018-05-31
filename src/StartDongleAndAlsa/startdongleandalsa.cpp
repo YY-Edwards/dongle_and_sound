@@ -5,6 +5,8 @@
 CStartDongleAndSound::CStartDongleAndSound()
 {
 	m_new_dongle_ptr = nullptr;
+	next = 0;
+	timer_start_flag = false;
 	log_debug("New: CStartDongleAndSound\n");
 }
 
@@ -17,6 +19,10 @@ bool CStartDongleAndSound::start(const char *lpszDevice, const char *pcm_name)
 {
 	auto  result = false;
 	m_new_dongle_ptr = nullptr;
+
+
+	timer();
+
 	m_new_dongle_ptr = new CSerialDongle;
 	if (m_new_dongle_ptr != nullptr){
 
@@ -30,7 +36,6 @@ bool CStartDongleAndSound::start(const char *lpszDevice, const char *pcm_name)
 		log_warning("open a new dongle\n");
 		m_new_dongle_ptr->send_dongle_initialization();
 	}
-
 
 	////timer
 	////timer();
@@ -66,6 +71,8 @@ void CStartDongleAndSound::stop()
 
 	}
 	m_new_dongle_ptr = nullptr;
+	timer_delete(timerid);
+	timer_start_flag = false;
 
 }
 
@@ -98,6 +105,7 @@ void CStartDongleAndSound::timer()//用来定时(20ms)触发串口读，写数据，并将CSeria
 	// evp--存放环境值的地址,结构成员说明了定时器到期的通知方式和处理方式等  
 	// timerid--定时器标识符  
 	//timer_t timerid;
+	if (timer_start_flag)return;
 	struct sigevent evp;
 	memset(&evp, 0, sizeof(struct sigevent));   //清零初始化  
 
@@ -133,13 +141,15 @@ void CStartDongleAndSound::timer()//用来定时(20ms)触发串口读，写数据，并将CSeria
 		//return -1;
 	}
 
+	timer_start_flag = true;
 	log_debug("create timer okay.\n");
 
 }
 
 void CStartDongleAndSound::read_voice_file(char* pBuffer, int len)
 {
-
+	if (m_new_dongle_ptr != nullptr)
+		m_new_dongle_ptr->extract_voice(pBuffer, len);
 	//m_serialdongle.extract_voice(pBuffer, len);
 }
 
@@ -147,6 +157,6 @@ void timer_routine(union sigval v)
 {
 	CSerialDongle *ptr = (CSerialDongle*)v.sival_ptr;
 	
-	//ptr->send_any_ambe_to_dongle();
-	//ptr->get_read_dongle_data();
+	ptr->send_any_ambe_to_dongle();
+	ptr->get_read_dongle_data();
 }
