@@ -31,7 +31,7 @@ private:
 	{
 		bool operator()(char const *a, char const *b)
 		{
-			return std::strcmp(a, b) < 0;
+			return ::strcmp(a, b) < 0;
 		}
 	};
 	map<const char *, CSerialDongle *, cmp_str> dongle_map;

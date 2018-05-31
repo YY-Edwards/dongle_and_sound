@@ -53,7 +53,7 @@ void CStartDongleAndSound::stop()
 	//timer_delete(timerid);
 	//m_serialdongle.close_dongle();
 
-	while (dongle_map.size > 0)
+	while (dongle_map.size() > 0)
 	{
 		auto it = dongle_map.begin();
 		if (it->second != nullptr){
