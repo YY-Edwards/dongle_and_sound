@@ -380,7 +380,7 @@ int CSerialDongle::SerialRxThreadFunc()
 	struct aiocb*   aiocb_list[1];
 	struct timespec timeout;
 	timeout.tv_sec = 0;
-	timeout.tv_nsec = 20*1000*1000;
+	timeout.tv_nsec = 5*1000*1000;
 
 	do
 	{
