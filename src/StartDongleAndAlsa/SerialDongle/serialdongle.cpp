@@ -378,6 +378,9 @@ int CSerialDongle::SerialRxThreadFunc()
 	//auto dwImmediateExpectations = AMBE3000_AMBE_BYTESINFRAME;
 	//异步阻塞列表
 	struct aiocb*   aiocb_list[1];
+	struct timespec timeout;
+	timeout.tv_sec = 0;
+	timeout.tv_nsec = 20*1000*1000;
 
 	do
 	{
@@ -392,29 +395,48 @@ int CSerialDongle::SerialRxThreadFunc()
 		}
 
 		aiocb_list[0] = &r_cbp;
-		//阻塞，直到请求完成才会继续执行后面的语句
-		ret = aio_suspend((const struct aiocb* const*)aiocb_list, 1, NULL);
+		//超时阻塞，直到请求完成才会继续执行后面的语句
+		ret = aio_suspend((const struct aiocb* const*)aiocb_list, 1, &timeout);
 		if (ret != 0)
 		{
-			log_warning("aio_suspend() ret:%d, errno:%s\n", ret, strerror(errno));
-			break;
-		}
-		if ((ret = aio_error(&r_cbp)) != 0)
-		{
-			log_debug("qio_error() ret:%d, errno:%s\n", ret, strerror(errno));
-		}
-		//请求操作完成，获取返回值
-		read_nbytes = aio_return(&r_cbp);
-		log_debug("dongle recv pcm:%d bytes\n", read_nbytes);
-		if (read_nbytes > 0)
-		{
-			//assemble:注意是同步解析。如需要异步，则用环形队列作缓冲。
-			AssembledCount = AssembleMsg(read_nbytes, &dwBytesConsumed);
+			if (errno == EAGAIN)//timeout
+			{}
+			else
+			{
+				log_warning("aio_suspend() ret:%d, errno:%d, %s\n", ret, errno, strerror(errno));
+				break;
+			}
 
 		}
-		else if (read_nbytes < 0 )
+		else
 		{
-			log_debug("aio_return() ret:%d, errno:%s\n", read_nbytes, strerror(errno));
+			if ((ret = aio_error(&r_cbp)) != 0)
+			{
+				log_debug("qio_error() ret:%d", ret);
+				if (ret == -1)
+				{
+					log_warning("qio_error() errno:%s\n", strerror(errno));
+					break;
+				}
+			}
+			else
+			{
+				//请求操作完成，获取返回值
+				read_nbytes = aio_return(&r_cbp);
+				log_debug("dongle recv pcm:%d bytes\n", read_nbytes);
+				if (read_nbytes > 0)
+				{
+					//assemble:注意是同步解析。如需要异步，则用环形队列作缓冲。
+					AssembledCount = AssembleMsg(read_nbytes, &dwBytesConsumed);
+
+				}
+				else if (read_nbytes < 0)
+				{
+					log_debug("aio_return() ret:%d, errno:%s\n", read_nbytes, strerror(errno));
+					break;
+				}
+
+			}
 		}
 
 		if (!m_PleaseStopSerial)
