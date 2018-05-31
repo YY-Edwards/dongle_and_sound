@@ -33,7 +33,7 @@ bool CStartDongleAndSound::start(const char *lpszDevice, const char *pcm_name)
 		log_warning("open a new dongle\n");
 		m_new_dongle_ptr->send_dongle_initialization();
 
-		timer();
+		//timer();
 	}
 
 
@@ -150,6 +150,8 @@ void CStartDongleAndSound::read_voice_file(char* pBuffer, int len)
 {
 	if (m_new_dongle_ptr != nullptr)
 		m_new_dongle_ptr->extract_voice(pBuffer, len);
+
+	timer();
 	//m_serialdongle.extract_voice(pBuffer, len);
 }
 

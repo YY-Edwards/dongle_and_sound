@@ -396,7 +396,8 @@ int CSerialDongle::SerialRxThreadFunc()
 
 		aiocb_list[0] = &r_cbp;
 		//超时阻塞，直到请求完成才会继续执行后面的语句
-		ret = aio_suspend((const struct aiocb* const*)aiocb_list, 1, &timeout);
+		ret = aio_suspend((const struct aiocb* const*)aiocb_list, 1, NULL);
+		//ret = aio_suspend((const struct aiocb* const*)aiocb_list, 1, &timeout);
 		if (ret != 0)
 		{
 			if (errno == EAGAIN)//timeout
