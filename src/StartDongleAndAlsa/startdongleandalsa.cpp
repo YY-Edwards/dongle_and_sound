@@ -20,9 +20,6 @@ bool CStartDongleAndSound::start(const char *lpszDevice, const char *pcm_name)
 	auto  result = false;
 	m_new_dongle_ptr = nullptr;
 
-
-	timer();
-
 	m_new_dongle_ptr = new CSerialDongle;
 	if (m_new_dongle_ptr != nullptr){
 
@@ -36,6 +33,8 @@ bool CStartDongleAndSound::start(const char *lpszDevice, const char *pcm_name)
 		log_warning("open a new dongle\n");
 		m_new_dongle_ptr->send_dongle_initialization();
 	}
+
+	timer();
 
 	////timer
 	////timer();
