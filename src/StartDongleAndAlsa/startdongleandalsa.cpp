@@ -206,6 +206,7 @@ void CStartDongleAndSound::extract_hotplug_info_func(hotplug_info_t *hpug_ptr)
 			if (temp_ptr->action.compare(action_add) == 0)
 			{
 				start(temp_ptr->devname.c_str());
+				sleep(30);
 				read_voice_file(voice_cache_ptr, cache_nbytes);
 				//m_startdongle.start(temp_ptr->devname.c_str());
 				/*if (pBuffer!=nullptr)m_startdongle.read_voice_file(pBuffer, nread);*/
@@ -249,5 +250,8 @@ void CStartDongleAndSound::get_voice_cache_from_file(const char* file_name)
 	{
 		log_warning("get voice file no all\r\n");
 	}
+
+	//start("/dev/ttyACM0");
+	//read_voice_file(voice_cache_ptr, cache_nbytes);
 
 }
