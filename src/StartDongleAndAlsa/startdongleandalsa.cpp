@@ -233,7 +233,7 @@ void CStartDongleAndSound::get_voice_cache_from_file(const char* file_name)
 	auto file_fd = open(file_name, O_RDONLY);
 	if (file_fd < 0)
 	{
-		log_warning("can't open :%s\n", argv[1]);
+		log_warning("can't open :%s\n", file_name);
 		close(file_fd);
 	}
 	auto file_length = lseek(file_fd, 0, SEEK_END);
