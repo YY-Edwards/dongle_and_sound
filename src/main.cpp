@@ -21,10 +21,6 @@
 using namespace std;
 
 int exit_flag = 0;
-char *pBuffer = nullptr;
-auto nread = 0;
-
-CStartDongleAndSound m_startdongle;
 
 static void  signal_handler(int sig_num) {
 	// Reinstantiate signal handler
@@ -47,49 +43,6 @@ static void  signal_handler(int sig_num) {
 }
 
 
-
-static void extract_hotplug_info(hotplug_info_t *hpug_ptr)//单线程模式
-{
-	hotplug_info_t *temp_ptr = hpug_ptr;
-	string action_add = "add";
-	string action_remove = "remove";
-	string action_change = "change";
-	string compare_subsystem = "tty";
-	string compare_id_driver = "cdc_acm";
-
-
-	if ((temp_ptr->subsystem.compare(compare_subsystem) == 0) 
-		&& (temp_ptr->id_driver.compare(compare_id_driver) == 0)
-		)
-	{
-		log_debug("find the dongle device\n");
-		log_debug("action:%s\n", temp_ptr->action.c_str());
-		log_debug("devpath:%s\n", temp_ptr->path.c_str());
-		log_debug("devname:%s\n", temp_ptr->devname.c_str());
-		if (temp_ptr->action.compare(action_add) == 0)
-		{
-			m_startdongle.start(temp_ptr->devname.c_str());
-			if (pBuffer!=nullptr)m_startdongle.read_voice_file(pBuffer, nread);
-		}
-		else if (temp_ptr->action.compare(action_remove) == 0)
-		{
-			m_startdongle.stop(temp_ptr->devname.c_str());
-		}
-		else if (temp_ptr->action.compare(action_change) == 0)
-		{
-
-		}
-
-	}
-	else
-	{
-		log_warning("find no dongle!\n");
-	}
-	
-
-
-}
-
 int main(int argc, char** argv)
 {
 	// Setup signal handler: quit on Ctrl-C
@@ -106,43 +59,42 @@ int main(int argc, char** argv)
 	log_debug("dongle main-process start\n");
 
 	CHotplug netlink_server;
+	CStartDongleAndSound m_startdongle;
 	//CStartDongleAndSound *m_startdongle = new CStartDongleAndSound;
 
 	//设置热插拔信息回调函数，并启动热插拔监测
-	netlink_server.set_hotplug_callback_func(extract_hotplug_info);
+	netlink_server.set_hotplug_callback_func(m_startdongle.extract_hotplug_info);
 	netlink_server.monitor_start();
 
-	//const char *dev_path = "/dev/ttyACM2";
-	//m_startdongle->start(dev_path);
+	//const char *dev_path = "/dev/ttyACM0";
+	//m_startdongle.start(dev_path);
 
 
 	log_debug("argv[1]:%s\n", argv[1]);
-	auto file_fd = open(argv[1], O_RDONLY);
-	if (file_fd < 0)
-	{
-		log_warning("can't open :%s\n", argv[1]);
-		close(file_fd);
-		netlink_server.monitor_stop();
-		//m_startdongle->stop();
-		//delete m_startdongle;
-		return -1;
-	}
-	auto file_length = lseek(file_fd, 0 , SEEK_END);
-	lseek(file_fd, 0, SEEK_SET);
+	//auto file_fd = open(argv[1], O_RDONLY);
+	//if (file_fd < 0)
+	//{
+	//	log_warning("can't open :%s\n", argv[1]);
+	//	close(file_fd);
+	//	netlink_server.monitor_stop();
+	//	//delete m_startdongle;
+	//	return -1;
+	//}
+	//auto file_length = lseek(file_fd, 0 , SEEK_END);
+	//lseek(file_fd, 0, SEEK_SET);
 	//char *pBuffer = new  char[file_length];
-	pBuffer = new  char[file_length];
-	nread = read(file_fd, pBuffer, file_length);
 	//auto nread = read(file_fd, pBuffer, file_length);
-	if (nread == file_length)
-	{
-		log_debug("get file_fd file success\r\n");
-	}
-	else
-	{
-		log_warning("get file_fd file no all\r\n");
-	}
-	//m_startdongle->read_voice_file(pBuffer, nread);
-	//delete[] pBuffer;
+	//if (nread == file_length)
+	//{
+	//	log_debug("get file_fd file success\r\n");
+	//}
+	//else
+	//{
+	//	log_warning("get file_fd file no all\r\n");
+	//}
+	////m_startdongle->read_voice_file(pBuffer, nread);
+	////delete[] pBuffer;
+	m_startdongle.get_voice_cache_from_file(argv[1]);
 
 	for (;;)
 	{
@@ -150,8 +102,7 @@ int main(int argc, char** argv)
 		{
 			log_debug("...closing threads...\r\n");
 			netlink_server.monitor_stop();
-			m_startdongle.stop();
-			delete[] pBuffer;
+			//delete[] pBuffer;
 			//m_startdongle->stop();
 			//delete m_startdongle;
 			break;

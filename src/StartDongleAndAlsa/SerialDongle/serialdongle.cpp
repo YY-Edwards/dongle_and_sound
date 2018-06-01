@@ -248,10 +248,10 @@ void CSerialDongle::close_dongle(void)
 		tx_serial_event_cond = nullptr;
 	}
 
-	if (tx_serial_event_cond != nullptr)
+	if (rx_serial_event_cond != nullptr)
 	{
-		delete tx_serial_event_cond;
-		tx_serial_event_cond = nullptr;
+		delete rx_serial_event_cond;
+		rx_serial_event_cond = nullptr;
 	}
 	DongleRxDataCallBackFunc = nullptr;
 	m_usartwrap.close_usart_dev();
@@ -386,13 +386,13 @@ int CSerialDongle::SerialRxThreadFunc()
 	{
 		//ret = rx_serial_event_cond->CondWait(0);
 		//reset_rx_serial_event();
-		if (ret == 0)
-		{
+		//if (ret == 0)
+		//{
 			//read
 			ret = aio_read_file(&r_cbp, m_rComm, dwImmediateExpectations);
 			if (ret < 0)break;
 
-		}
+		//}
 
 		aiocb_list[0] = &r_cbp;
 		//超时阻塞，直到请求完成才会继续执行后面的语句
@@ -401,7 +401,9 @@ int CSerialDongle::SerialRxThreadFunc()
 		if (ret != 0)
 		{
 			if (errno == EAGAIN)//timeout
-			{}
+			{
+				log_warning("aio_suspend() EAGAIN\n");
+			}
 			else
 			{
 				log_warning("aio_suspend() ret:%d, errno:%d, %s\n", ret, errno, strerror(errno));
@@ -667,8 +669,9 @@ void CSerialDongle::set_tx_serial_event()
 
 	if (tx_serial_event_cond != nullptr)
 	{
-		tx_serial_event_cond->CondTrigger(false);
 		log_debug("timer set write event[:]\n");
+		tx_serial_event_cond->CondTrigger(false);
+		
 	}
 
 }
@@ -943,6 +946,10 @@ void CSerialDongle::send_any_ambe_to_dongle(void)
 		//SetEvent(m_hTickleTxSerialEvent);
 		set_tx_serial_event();
 	}
+	/*else
+	{
+		log_warning("aio_write underrun...\n");
+	}*/
 }
 
 
@@ -986,6 +993,10 @@ uint8_t * CSerialDongle::read_dongle_data()
 	{
 		dataType = 0;
 		return thePCMFrameFldSamples;
+	}
+	else
+	{
+		//log_warning("aio_read underrun!\n");
 	}
 	return NULL;
 

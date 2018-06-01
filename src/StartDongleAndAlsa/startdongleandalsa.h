@@ -4,6 +4,7 @@
 #pragma once
 #include "serialdongle.h"
 #include "audioalsa.h"
+#include "hotplug.h"
 #include <time.h>  
 
 
@@ -17,10 +18,17 @@ public:
 	void stop();//stop tatol dongle and alsa
 	void stop(const char *);//stop one dongle
 	void read_voice_file(char* pBuffer, int len);
+	void get_voice_cache_from_file(const char* file_name);
 
 public:
 
+	static void extract_hotplug_info(hotplug_info_t *hpug_ptr);//单线程模式
+	void extract_hotplug_info_func(hotplug_info_t *hpug_ptr);
+
 private:
+	static CStartDongleAndSound *pThis;
+	char *voice_cache_ptr;
+	int cache_nbytes;
 	int next;
 	timer_t timerid;
 	bool timer_start_flag;
