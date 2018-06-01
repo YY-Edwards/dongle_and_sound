@@ -175,83 +175,83 @@ void timer_routine(union sigval v)
 	ptr->get_read_dongle_data();
 }
 
-void CStartDongleAndSound::extract_hotplug_info(hotplug_info_t *hpug_ptr)//单线程模式
-{
-
-	if (pThis != nullptr)
-	{
-		pThis->extract_hotplug_info_func(hpug_ptr);
-	}
-
-}
-void CStartDongleAndSound::extract_hotplug_info_func(hotplug_info_t *hpug_ptr)
-{
-		hotplug_info_t *temp_ptr = hpug_ptr;
-		string action_add = "add";
-		string action_remove = "remove";
-		string action_change = "change";
-		string compare_subsystem = "tty";
-		string compare_id_driver = "cdc_acm";
-	
-	
-		//if ((temp_ptr->subsystem.compare(compare_subsystem) == 0))
-		if ((temp_ptr->subsystem.compare(compare_subsystem) == 0) 
-			&& (temp_ptr->id_driver.compare(compare_id_driver) == 0)
-			)
-		{
-			log_debug("find the dongle device\n");
-			log_debug("action:%s\n", temp_ptr->action.c_str());
-			log_debug("devpath:%s\n", temp_ptr->path.c_str());
-			log_debug("devname:%s\n", temp_ptr->devname.c_str());
-			if (temp_ptr->action.compare(action_add) == 0)
-			{
-				start(temp_ptr->devname.c_str());
-				sleep(30);
-				read_voice_file(voice_cache_ptr, cache_nbytes);
-				//m_startdongle.start(temp_ptr->devname.c_str());
-				/*if (pBuffer!=nullptr)m_startdongle.read_voice_file(pBuffer, nread);*/
-			}
-			else if (temp_ptr->action.compare(action_remove) == 0)
-			{
-				stop(temp_ptr->devname.c_str());
-				//m_startdongle.stop(temp_ptr->devname.c_str());
-			}
-			else if (temp_ptr->action.compare(action_change) == 0)
-			{
-	
-			}
-	
-		}
-		else
-		{
-			log_warning("find no dongle!\n");
-		}
-		
-
-}
-void CStartDongleAndSound::get_voice_cache_from_file(const char* file_name)
-{
-	auto file_fd = open(file_name, O_RDONLY);
-	if (file_fd < 0)
-	{
-		log_warning("can't open :%s\n", file_name);
-		close(file_fd);
-	}
-	auto file_length = lseek(file_fd, 0, SEEK_END);
-	lseek(file_fd, 0, SEEK_SET);
-	voice_cache_ptr = new  char[file_length];
-	auto nread = read(file_fd, voice_cache_ptr, file_length);
-	if (nread == file_length)
-	{
-		cache_nbytes = nread;
-		log_debug("get voice file success\r\n");
-	}
-	else
-	{
-		log_warning("get voice file no all\r\n");
-	}
-
-	//start("/dev/ttyACM0");
-	//read_voice_file(voice_cache_ptr, cache_nbytes);
-
-}
+//void CStartDongleAndSound::extract_hotplug_info(hotplug_info_t *hpug_ptr)//单线程模式
+//{
+//
+//	if (pThis != nullptr)
+//	{
+//		pThis->extract_hotplug_info_func(hpug_ptr);
+//	}
+//
+//}
+//void CStartDongleAndSound::extract_hotplug_info_func(hotplug_info_t *hpug_ptr)
+//{
+//		hotplug_info_t *temp_ptr = hpug_ptr;
+//		string action_add = "add";
+//		string action_remove = "remove";
+//		string action_change = "change";
+//		string compare_subsystem = "tty";
+//		string compare_id_driver = "cdc_acm";
+//	
+//	
+//		//if ((temp_ptr->subsystem.compare(compare_subsystem) == 0))
+//		if ((temp_ptr->subsystem.compare(compare_subsystem) == 0) 
+//			&& (temp_ptr->id_driver.compare(compare_id_driver) == 0)
+//			)
+//		{
+//			log_debug("find the dongle device\n");
+//			log_debug("action:%s\n", temp_ptr->action.c_str());
+//			log_debug("devpath:%s\n", temp_ptr->path.c_str());
+//			log_debug("devname:%s\n", temp_ptr->devname.c_str());
+//			if (temp_ptr->action.compare(action_add) == 0)
+//			{
+//				start(temp_ptr->devname.c_str());
+//				sleep(30);
+//				read_voice_file(voice_cache_ptr, cache_nbytes);
+//				//m_startdongle.start(temp_ptr->devname.c_str());
+//				/*if (pBuffer!=nullptr)m_startdongle.read_voice_file(pBuffer, nread);*/
+//			}
+//			else if (temp_ptr->action.compare(action_remove) == 0)
+//			{
+//				stop(temp_ptr->devname.c_str());
+//				//m_startdongle.stop(temp_ptr->devname.c_str());
+//			}
+//			else if (temp_ptr->action.compare(action_change) == 0)
+//			{
+//	
+//			}
+//	
+//		}
+//		else
+//		{
+//			log_warning("find no dongle!\n");
+//		}
+//		
+//
+//}
+//void CStartDongleAndSound::get_voice_cache_from_file(const char* file_name)
+//{
+//	auto file_fd = open(file_name, O_RDONLY);
+//	if (file_fd < 0)
+//	{
+//		log_warning("can't open :%s\n", file_name);
+//		close(file_fd);
+//	}
+//	auto file_length = lseek(file_fd, 0, SEEK_END);
+//	lseek(file_fd, 0, SEEK_SET);
+//	voice_cache_ptr = new  char[file_length];
+//	auto nread = read(file_fd, voice_cache_ptr, file_length);
+//	if (nread == file_length)
+//	{
+//		cache_nbytes = nread;
+//		log_debug("get voice file success\r\n");
+//	}
+//	else
+//	{
+//		log_warning("get voice file no all\r\n");
+//	}
+//
+//	//start("/dev/ttyACM0");
+//	//read_voice_file(voice_cache_ptr, cache_nbytes);
+//
+//}

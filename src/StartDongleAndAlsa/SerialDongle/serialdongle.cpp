@@ -598,7 +598,7 @@ void CSerialDongle::aio_write_completion_hander(int signo, siginfo_t *info, void
 		/*AIO«Î«ÛÕÍ≥…£ø*/
 		ret = aio_error(req);
 		log_debug("\r\n\r\n");
-		log_debug("aio write status:%d\n", ret);
+		//log_debug("aio write status:%d\n", ret);
 		switch (ret)
 		{
 			case EINPROGRESS://working
