@@ -75,6 +75,7 @@ CHotplug::CHotplug()
 , hotplug_callback_func_ptr(nullptr)
 {
 	log_debug("New: CHotplug \n");
+	set_thread_exit_flag = false;
 	pThis = this;
 	event_queue_ptr = nullptr;
 	event_queue_ptr = new DynRingQueue(30, 1200);
