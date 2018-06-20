@@ -176,7 +176,7 @@ void *CHotplug::HotplugMonitorThread(void* p)
 	{
 		return_value = arg->HotplugMonitorThreadFunc();
 	}
-	return (void*)return_value;
+	return ((void*)0);
 
 
 }
@@ -266,7 +266,7 @@ void *CHotplug::EventParseThread(void* p)
 	{
 		return_value = arg->EventParseThreadFunc();
 	}
-	return (void*)return_value;
+	return ((void*)0);
 }
 int CHotplug::EventParseThreadFunc()
 {

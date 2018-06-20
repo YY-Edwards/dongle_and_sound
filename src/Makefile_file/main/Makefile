@@ -6,6 +6,7 @@ export OBJSDIR = $(shell pwd)/objs
 export ASDF = $(shell pwd)/bina
 $(TARGET):$(OBJSDIR) $(ASDF)
 	$(MAKE) -C src/PublicInterface/FifoQueue
+	$(MAKE) -C src/PublicInterface/Hotplug
 	$(CXX) -o $(ASDF)/$(TARGET) $(OBJSDIR)/*.o
 $(OBJSDIR):
 	mkdir -p $@

@@ -14,6 +14,8 @@ C_FLAGS += -lpthread -lrt -g -Wl,--as-needed -std=c++11
 INC += \
 -I $(OBJSDIR)/../src \
 -I $(OBJSDIR)/../src/PublicInterface/SynInterface \
+-I $(OBJSDIR)/../src/PublicInterface/SocketWrap \
+-I $(OBJSDIR)/../src/PublicInterface/FifoQueue \
 -I /usr/include/
 
 #需要的库文件路径

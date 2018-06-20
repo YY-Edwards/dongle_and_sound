@@ -363,7 +363,7 @@ void *CSerialDongle::SerialRxThread(void* p)//must be static since is thread
 	if (obj!=NULL)
 		 ret = obj->SerialRxThreadFunc();
 
-	return (void *)ret;
+	return (void *)0;
 
 }
 int CSerialDongle::SerialRxThreadFunc()
@@ -478,7 +478,7 @@ void *CSerialDongle::SerialTxThread(void* p)//must be static since is thread
 	if (obj != NULL)
 		ret = obj->SerialTxThreadFunc();
 
-	return (void *)ret;
+	return (void *)0;
 
 }
 int CSerialDongle::SerialTxThreadFunc()
