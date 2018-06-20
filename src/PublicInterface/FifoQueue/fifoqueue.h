@@ -45,8 +45,8 @@ public:
 public:
 	virtual bool  PushToQueue(void *packet, int len) = 0;
 	//带超时等待机制的take
-	virtual int32_t TakeFromQueue(void *packet, int& len, int waittime = 200){};//默认实现
-	virtual int32_t TakeFromQueue(void *packet, int& len){};//默认实现
+	virtual int32_t TakeFromQueue(void *packet, int& len, int waittime = 200){ return 0; };//默认实现
+	virtual int32_t TakeFromQueue(void *packet, int& len, bool erase){ return 0; };//默认实现
 
 	virtual void	ClearQueue() = 0;
 	virtual	bool 	QueueIsEmpty() = 0;

@@ -184,7 +184,7 @@ int CHotplug::HotplugMonitorThreadFunc()
 {
 	auto return_value = 0;
 	fd_set readfds;
-	fd_set writefds;
+	//fd_set writefds;
 	struct timespec timeout;
 	timeout.tv_sec = SELECT_TIMEOUT;
 	timeout.tv_nsec = 0;
