@@ -12,8 +12,6 @@ C_FLAGS += -lpthread -lrt -g -Wl,--as-needed -std=c++11
 
 #需要的头文件路径
 INC += \
--I $(OBJSDIR)/../src/StartDongleAndAlsa/ \
--I $(OBJSDIR)/../src/PublicInterface/Hotplug \
 -I $(OBJSDIR)/../src \
 -I /usr/include/
 

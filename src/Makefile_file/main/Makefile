@@ -7,6 +7,8 @@ export ASDF = $(shell pwd)/bina
 $(TARGET):$(OBJSDIR) $(ASDF)
 	$(MAKE) -C src/PublicInterface/FifoQueue
 	$(MAKE) -C src/PublicInterface/Hotplug
+	$(MAKE) -C src/PublicInterface/SocketWrap
+	$(MAKE) -C src/PublicInterface/SynInterface
 	$(CXX) -o $(ASDF)/$(TARGET) $(OBJSDIR)/*.o
 $(OBJSDIR):
 	mkdir -p $@

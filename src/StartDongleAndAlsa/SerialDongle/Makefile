@@ -12,9 +12,9 @@ C_FLAGS += -lpthread -lrt -g -Wl,--as-needed -std=c++11
 
 #需要的头文件路径
 INC += \
--I $(OBJSDIR)/../src/StartDongleAndAlsa/ \
--I $(OBJSDIR)/../src/PublicInterface/Hotplug \
--I $(OBJSDIR)/../src \
+-I $(OBJSDIR)/../src/PublicInterface/FifoQueue \
+-I $(OBJSDIR)/../src/PublicInterface/SynInterface \
+-I $(OBJSDIR)/../src/PublicInterface/SerialDongle/Usart \
 -I /usr/include/
 
 #需要的库文件路径
