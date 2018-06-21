@@ -942,7 +942,7 @@ void CSerialDongle::ParseDVSImsg(DVSI3000struct* pMsg)
 		//Do conversion in destination.
 		//m_directSound.BigEndianSoundOut( (unsigned __int8*)&(pMsg->PCMType.thePCMFrame.fld.Samples[0]) );
 		//memcpy(thePCMFrameFldSamples, (uint8_t*)&(pMsg->PCMType.thePCMFrame.fld.Samples[0]), THEPCMFRAMEFLDSAMPLESLENGTH);
-		ret = the_pcm_sample_queue_ptr->PushToQueue((void*)(pMsg->PCMType.thePCMFrame.fld.Samples[0]), THEPCMFRAMEFLDSAMPLESLENGTH);
+		ret = the_pcm_sample_queue_ptr->PushToQueue((void*)&(pMsg->PCMType.thePCMFrame.fld.Samples[0]), THEPCMFRAMEFLDSAMPLESLENGTH);
 		if (ret != true)
 		{
 			log_warning("the_pcm_sample_queue_ptr->PushToQueue full!!!\n");
