@@ -1022,7 +1022,7 @@ uint8_t * CSerialDongle::read_dongle_data()
 	//}
 	int len = 0;
 	auto ret = the_pcm_sample_queue_ptr->TakeFromQueue(thePCMFrameFldSamples, (int &)len, true);
-	if (ret != 0)
+	if (ret == 0)
 	{
 		dataType = 0;
 		return thePCMFrameFldSamples;
