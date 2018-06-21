@@ -22,7 +22,7 @@ CSerialDongle::CSerialDongle()
 	DongleRxDataCallBackFunc = nullptr;
 	m_dwExpectedDongleRead = AMBE3000_PCM_BYTESINFRAME;
 	//m_dwExpectedDongleRead = AMBE3000_AMBE_BYTESINFRAME
-	the_pcm_sample_queue_ptr = new DynRingQueue(320, 30);
+	the_pcm_sample_queue_ptr = new DynRingQueue(30, 320);
 	memset(thePCMFrameFldSamples, 0, THEPCMFRAMEFLDSAMPLESLENGTH);
 	dataType = 0;
 	m_rComm = 0;
