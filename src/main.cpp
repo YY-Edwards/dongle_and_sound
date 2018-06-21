@@ -54,11 +54,14 @@ static void extract_hotplug_info_func(hotplug_info_t *hpug_ptr)
 	string action_change = "change";
 	string compare_subsystem = "tty";
 	string compare_id_model = "AVR32_UC3_CDC";
+	string compare_id_vendor = "ATMEL";
+
 
 
 	//if ((temp_ptr->subsystem.compare(compare_subsystem) == 0))
 	if ((temp_ptr->subsystem.compare(compare_subsystem) == 0)
 		&& (temp_ptr->id_model.compare(compare_id_model) == 0)
+		&& (temp_ptr->id_vendor.compare(compare_id_vendor) == 0)
 		)
 	{
 		log_debug("find the dongle device\n");

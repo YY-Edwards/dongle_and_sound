@@ -305,7 +305,7 @@ void CHotplug::parse_event(const char *msg)
 	string tt = "";
 
 	//log_debug("recv:%s\n", msg);
-	log("%s\n", msg);
+	//log("%s\n", msg);
 	//log_debug("recv hotplug info:\n");
 	auto  last = 0;
 	auto  end_index = 0;
@@ -316,13 +316,14 @@ void CHotplug::parse_event(const char *msg)
 	hotplug_info.devname = "";
 	hotplug_info.major = 0;
 	hotplug_info.minor = 0;
+	hotplug_info.id_vendor = "";
 	hotplug_info.id_model = "";
 
 #if 1
 	auto  start_index = temp_str.find(libudev_delim, last);//"libudev"
 	if (start_index != string::npos) //hint:  here "string::npos"means find failed  
 	{
-		start_index = temp_str.find(action_delim, last);//"ACTION"
+		start_index = temp_str.find(action_delim, last);//"ACTION="
 		if (start_index != string::npos)
 		{
 			start_index = temp_str.find_first_of('=', start_index);//"="
@@ -335,7 +336,7 @@ void CHotplug::parse_event(const char *msg)
 			tt.clear();//clear tt
 
 			start_index = end_index;//更新偏移
-			start_index = temp_str.find(devpath_delim, start_index);//"DEVPATH"
+			start_index = temp_str.find(devpath_delim, start_index);//"DEVPATH="
 			if (start_index != string::npos)
 			{
 				start_index = temp_str.find_first_of('=', start_index);//"="
@@ -348,7 +349,7 @@ void CHotplug::parse_event(const char *msg)
 				tt.clear();//clear tt
 
 				start_index = end_index;//更新偏移
-				start_index = temp_str.find(subsystem_delim, start_index);//"SUBSYSTEM"
+				start_index = temp_str.find(subsystem_delim, start_index);//"SUBSYSTEM="
 				if (start_index != string::npos)
 				{
 					start_index = temp_str.find_first_of('=', start_index);//"="
@@ -361,7 +362,7 @@ void CHotplug::parse_event(const char *msg)
 					tt.clear();//clear tt
 
 					start_index = end_index;//更新偏移
-					start_index = temp_str.find(devname_delim, start_index);//"DEVNAME"
+					start_index = temp_str.find(devname_delim, start_index);//"DEVNAME="
 					if (start_index != string::npos)
 					{
 						start_index = temp_str.find_first_of('=', start_index);//"="
@@ -374,7 +375,7 @@ void CHotplug::parse_event(const char *msg)
 						tt.clear();//clear tt
 
 						start_index = end_index;//更新偏移
-						start_index = temp_str.find(major_delim, start_index);//"MAJOR"
+						start_index = temp_str.find(major_delim, start_index);//"MAJOR="
 						if (start_index != string::npos)
 						{
 							start_index = temp_str.find_first_of('=', start_index);//"="
@@ -387,7 +388,7 @@ void CHotplug::parse_event(const char *msg)
 							tt.clear();//clear tt
 
 							start_index = end_index;//更新偏移
-							start_index = temp_str.find(minor_delim, start_index);//"MINOR"
+							start_index = temp_str.find(minor_delim, start_index);//"MINOR="
 							if (start_index != string::npos)
 							{
 								start_index = temp_str.find_first_of('=', start_index);//"="
@@ -400,7 +401,7 @@ void CHotplug::parse_event(const char *msg)
 								tt.clear();//clear tt
 
 								start_index = end_index;//更新偏移
-								start_index = temp_str.find(id_model_delim, start_index);//"ID_MODEL"
+								start_index = temp_str.find(id_vendor_delim, start_index);//"ID_VENDOR="
 								if (start_index != string::npos)
 								{
 									start_index = temp_str.find_first_of('=', start_index);//"="
@@ -408,22 +409,38 @@ void CHotplug::parse_event(const char *msg)
 									tt = temp_str.substr((start_index + 1), (end_index - start_index - 1));
 									if (!tt.empty())
 									{
-										hotplug_info.id_model = tt;//copy "id_model"
+										hotplug_info.id_vendor = tt;//copy "id_vendor"
 									}
 									tt.clear();//clear tt
 
-									//启用回调
-									log_debug("recv hotplug info:\n");
-									log_debug("action:%s\n", hotplug_info.action.c_str());
-									log_debug("devpath:%s\n", hotplug_info.path.c_str());
-									log_debug("subsystem:%s\n", hotplug_info.subsystem.c_str());
-									log_debug("devname:%s\n", hotplug_info.devname.c_str());
-									log_debug("major:%d\n", hotplug_info.major);
-									log_debug("minor:%d\n", hotplug_info.minor);
-									log_debug("id_model:%s\n", hotplug_info.id_model.c_str());
-									hotplug_callback_func_ptr(&hotplug_info);
+									start_index = end_index;//更新偏移
+									start_index = temp_str.find(id_model_delim, start_index);//"ID_MODEL="
+									if (start_index != string::npos)
+									{
+										start_index = temp_str.find_first_of('=', start_index);//"="
+										end_index = temp_str.find_first_of('\n', start_index);//"\n"
+										tt = temp_str.substr((start_index + 1), (end_index - start_index - 1));
+										if (!tt.empty())
+										{
+											hotplug_info.id_model = tt;//copy "id_model"
+										}
+										tt.clear();//clear tt
 
-								}//end find "ID_USB_DRIVER"
+										//启用回调
+										log_debug("\r\n");
+										log_debug("recv hotplug info:\n");
+										log_debug("action:%s\n", hotplug_info.action.c_str());
+										log_debug("devpath:%s\n", hotplug_info.path.c_str());
+										log_debug("subsystem:%s\n", hotplug_info.subsystem.c_str());
+										log_debug("devname:%s\n", hotplug_info.devname.c_str());
+										log_debug("major:%d\n", hotplug_info.major);
+										log_debug("minor:%d\n", hotplug_info.minor);
+										log_debug("id_vendor:%s\n", hotplug_info.id_vendor.c_str());
+										log_debug("id_model:%s\n", hotplug_info.id_model.c_str());
+										hotplug_callback_func_ptr(&hotplug_info);
+
+									}//end find "ID_MODEL"
+								}//end find "ID_VENDOR"
 							}//end find "MINOR"
 						}//end find "MAJOR"
 					}//end find "DEVNAME"
@@ -442,13 +459,14 @@ void CHotplug::parse_event(const char *msg)
 void CHotplug::monitor_start(void)
 {
 	libudev_delim = "libudev";
-	action_delim = "ACTION";
-	devpath_delim = "DEVPATH";
-	subsystem_delim = "SUBSYSTEM";
-	devname_delim = "DEVNAME";
-	major_delim = "MAJOR";
-	minor_delim = "MINOR";
-	id_model_delim = "ID_MODEL";
+	action_delim = "ACTION=";
+	devpath_delim = "DEVPATH=";
+	subsystem_delim = "SUBSYSTEM=";
+	devname_delim = "DEVNAME=";
+	major_delim = "MAJOR=";
+	minor_delim = "MINOR=";
+	id_vendor_delim = "ID_VENDOR=";
+	id_model_delim = "ID_MODEL=";
 
 	hotplug_info.action = "";
 	hotplug_info.path = "";
@@ -456,6 +474,7 @@ void CHotplug::monitor_start(void)
 	hotplug_info.devname = "";
 	hotplug_info.major = 0;
 	hotplug_info.minor = 0;
+	hotplug_info.id_vendor = "";
 	hotplug_info.id_model = "";
 
 

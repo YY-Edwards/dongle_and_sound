@@ -17,6 +17,7 @@ struct hotplug_info_t {
 	string devname;
 	int major;//ttyUSB:188;ttyACM:166
 	int minor;
+	string id_vendor;//ATMEL or other
 	string id_model;//AVR32_UC3_CDC or other
 
 };
@@ -50,6 +51,7 @@ private:
 	string devname_delim;
 	string major_delim;
 	string minor_delim;
+	string id_vendor_delim;
 	string id_model_delim;
 
 	struct hotplug_info_t hotplug_info;
