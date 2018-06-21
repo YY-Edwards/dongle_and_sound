@@ -310,6 +310,14 @@ void CHotplug::parse_event(const char *msg)
 	auto  last = 0;
 	auto  end_index = 0;
 
+	hotplug_info.action = "";
+	hotplug_info.path = "";
+	hotplug_info.subsystem = "";
+	hotplug_info.devname = "";
+	hotplug_info.major = 0;
+	hotplug_info.minor = 0;
+	hotplug_info.id_model = "";
+
 #if 1
 	auto  start_index = temp_str.find(libudev_delim, last);//"libudev"
 	if (start_index != string::npos) //hint:  here "string::npos"means find failed  
@@ -392,7 +400,7 @@ void CHotplug::parse_event(const char *msg)
 								tt.clear();//clear tt
 
 								start_index = end_index;//¸üÐÂÆ«ÒÆ
-								start_index = temp_str.find(id_mode_delim, start_index);//"ID_MODE"
+								start_index = temp_str.find(id_model_delim, start_index);//"ID_MODEL"
 								if (start_index != string::npos)
 								{
 									start_index = temp_str.find_first_of('=', start_index);//"="
@@ -400,7 +408,7 @@ void CHotplug::parse_event(const char *msg)
 									tt = temp_str.substr((start_index + 1), (end_index - start_index - 1));
 									if (!tt.empty())
 									{
-										hotplug_info.id_mode = tt;//copy "id_mode"
+										hotplug_info.id_model = tt;//copy "id_model"
 									}
 									tt.clear();//clear tt
 
@@ -412,7 +420,7 @@ void CHotplug::parse_event(const char *msg)
 									log_debug("devname:%s\n", hotplug_info.devname.c_str());
 									log_debug("major:%d\n", hotplug_info.major);
 									log_debug("minor:%d\n", hotplug_info.minor);
-									log_debug("id_mode:%s\n", hotplug_info.id_mode.c_str());
+									log_debug("id_model:%s\n", hotplug_info.id_model.c_str());
 									hotplug_callback_func_ptr(&hotplug_info);
 
 								}//end find "ID_USB_DRIVER"
@@ -440,7 +448,7 @@ void CHotplug::monitor_start(void)
 	devname_delim = "DEVNAME";
 	major_delim = "MAJOR";
 	minor_delim = "MINOR";
-	id_mode_delim = "ID_MODE";
+	id_model_delim = "ID_MODEL";
 
 	hotplug_info.action = "";
 	hotplug_info.path = "";
@@ -448,7 +456,7 @@ void CHotplug::monitor_start(void)
 	hotplug_info.devname = "";
 	hotplug_info.major = 0;
 	hotplug_info.minor = 0;
-	hotplug_info.id_mode = "";
+	hotplug_info.id_model = "";
 
 
 	init_netlink_socket(false);
