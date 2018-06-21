@@ -304,8 +304,8 @@ void CHotplug::parse_event(const char *msg)
 	string temp_str = msg;//转换为string类型
 	string tt = "";
 
-	log_debug("recv:%s\n", msg);
-	//log("%s\n", msg);
+	//log_debug("recv:%s\n", msg);
+	log("%s\n", msg);
 	//log_debug("recv hotplug info:\n");
 	auto  last = 0;
 	auto  end_index = 0;
@@ -392,7 +392,7 @@ void CHotplug::parse_event(const char *msg)
 								tt.clear();//clear tt
 
 								start_index = end_index;//更新偏移
-								start_index = temp_str.find(id_driver_delim, start_index);//"ID_USB_DRIVER"
+								start_index = temp_str.find(id_mode_delim, start_index);//"ID_MODE"
 								if (start_index != string::npos)
 								{
 									start_index = temp_str.find_first_of('=', start_index);//"="
@@ -400,7 +400,7 @@ void CHotplug::parse_event(const char *msg)
 									tt = temp_str.substr((start_index + 1), (end_index - start_index - 1));
 									if (!tt.empty())
 									{
-										hotplug_info.id_driver = tt;//copy "id_driver"
+										hotplug_info.id_mode = tt;//copy "id_mode"
 									}
 									tt.clear();//clear tt
 
@@ -412,7 +412,7 @@ void CHotplug::parse_event(const char *msg)
 									log_debug("devname:%s\n", hotplug_info.devname.c_str());
 									log_debug("major:%d\n", hotplug_info.major);
 									log_debug("minor:%d\n", hotplug_info.minor);
-									log_debug("id_driver:%s\n", hotplug_info.id_driver.c_str());
+									log_debug("id_mode:%s\n", hotplug_info.id_mode.c_str());
 									hotplug_callback_func_ptr(&hotplug_info);
 
 								}//end find "ID_USB_DRIVER"
@@ -440,7 +440,7 @@ void CHotplug::monitor_start(void)
 	devname_delim = "DEVNAME";
 	major_delim = "MAJOR";
 	minor_delim = "MINOR";
-	id_driver_delim = "ID_USB_DRIVER";
+	id_mode_delim = "ID_MODE";
 
 	hotplug_info.action = "";
 	hotplug_info.path = "";
@@ -448,7 +448,7 @@ void CHotplug::monitor_start(void)
 	hotplug_info.devname = "";
 	hotplug_info.major = 0;
 	hotplug_info.minor = 0;
-	hotplug_info.id_driver = "";
+	hotplug_info.id_mode = "";
 
 
 	init_netlink_socket(false);

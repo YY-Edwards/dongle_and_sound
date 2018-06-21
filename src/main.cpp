@@ -53,12 +53,12 @@ static void extract_hotplug_info_func(hotplug_info_t *hpug_ptr)
 	string action_remove = "remove";
 	string action_change = "change";
 	string compare_subsystem = "tty";
-	string compare_id_driver = "cdc_acm";
+	string compare_id_mode = "AVR32_UC3_CDC";
 
 
 	//if ((temp_ptr->subsystem.compare(compare_subsystem) == 0))
 	if ((temp_ptr->subsystem.compare(compare_subsystem) == 0)
-		&& (temp_ptr->id_driver.compare(compare_id_driver) == 0)
+		&& (temp_ptr->id_mode.compare(compare_id_mode) == 0)
 		)
 	{
 		log_debug("find the dongle device\n");
