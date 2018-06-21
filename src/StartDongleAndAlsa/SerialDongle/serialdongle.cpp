@@ -381,6 +381,7 @@ int CSerialDongle::SerialRxThreadFunc()
 	struct timespec timeout;
 	timeout.tv_sec = 0;
 	timeout.tv_nsec = 5*1000*1000;
+	recv_index = 0;
 
 	do
 	{
@@ -487,6 +488,8 @@ int CSerialDongle::SerialTxThreadFunc()
 	auto ret = 0;
 	int  snapPCMBufHead;
 	int  snapAMBEBufHead;
+	send_index = 0;
+
 	do
 	{
 		ret = tx_serial_event_cond->CondWait(0);
@@ -632,6 +635,9 @@ void CSerialDongle::aio_write_completion_hander(int signo, siginfo_t *info, void
 						pThis->fWaitingOnWrite = false;
 						pThis->fWaitingOnPCM = false;
 						pThis->fWaitingOnAMBE = false;
+
+						pThis->send_index++;
+						log_debug("dongle send ambe index:%d\n", pThis->send_index);
 					}
 
 				break;
@@ -893,6 +899,8 @@ int CSerialDongle::AssembleMsg(int numBytes, int * dwBytesAssembled)
 					bytecount = 0;
 					WholeMessageCount++;
 					log_debug("Parse pcm-msg okay.\n");
+					recv_index++;
+					log_debug("recv pcm-msg index:%d\n", recv_index);
 				}
 				break;
 			default:
@@ -997,7 +1005,7 @@ uint8_t * CSerialDongle::read_dongle_data()
 	}
 	else
 	{
-		//log_warning("aio_read underrun!\n");
+		log_warning("aio_read underrun!\n");
 	}
 	return NULL;
 
@@ -1017,6 +1025,10 @@ void CSerialDongle::get_read_dongle_data()
 		}
 		else
 		{
+			if (ret=!THEPCMFRAMEFLDSAMPLESLENGTH)
+			{
+				log_warning("write pcm-voice uncompleted:%ld\r\n", ret);
+			}
 			log_debug("save pcm data okay.\n");
 		}
 	}

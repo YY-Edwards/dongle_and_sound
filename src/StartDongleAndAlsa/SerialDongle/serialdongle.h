@@ -106,6 +106,9 @@ private:
 	bool  fWaitingOnPCM;
 	bool  fWaitingOnAMBE;
 
+	int send_index; 
+	int recv_index;
+
 	//AMBE-Queue
 	tAMBEFrame      m_AMBE_CirBuff[MAXDONGLEAMBEFRAMES];
 	int             m_AMBEBufHead;
