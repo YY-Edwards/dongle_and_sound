@@ -69,16 +69,16 @@ static void extract_hotplug_info_func(hotplug_info_t *hpug_ptr)
 		{
 			if (m_startdongle != nullptr)
 			{
-				m_startdongle->start(temp_ptr->devname.c_str());
-				sleep(30);
-				m_startdongle->read_voice_file(pBuffer, nread); 
+				//m_startdongle->start(temp_ptr->devname.c_str());
+				//sleep(30);
+				//m_startdongle->read_voice_file(pBuffer, nread); 
 			}
 	
 		}
 		else if (temp_ptr->action.compare(action_remove) == 0)
 		{
-			if (m_startdongle!=nullptr)
-				m_startdongle->stop(temp_ptr->devname.c_str());
+			//if (m_startdongle!=nullptr)
+				//m_startdongle->stop(temp_ptr->devname.c_str());
 		}
 		else if (temp_ptr->action.compare(action_change) == 0)
 		{

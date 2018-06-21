@@ -304,7 +304,7 @@ void CHotplug::parse_event(const char *msg)
 	string temp_str = msg;//转换为string类型
 	string tt = "";
 
-	//log_debug("recv:%s\n", msg);
+	log_debug("recv:%s\n", msg);
 	//log("%s\n", msg);
 	//log_debug("recv hotplug info:\n");
 	auto  last = 0;
@@ -405,8 +405,7 @@ void CHotplug::parse_event(const char *msg)
 									tt.clear();//clear tt
 
 									//启用回调
-									hotplug_callback_func_ptr(&hotplug_info);
-								/*	log_debug("recv hotplug info:\n");
+									log_debug("recv hotplug info:\n");
 									log_debug("action:%s\n", hotplug_info.action.c_str());
 									log_debug("devpath:%s\n", hotplug_info.path.c_str());
 									log_debug("subsystem:%s\n", hotplug_info.subsystem.c_str());
@@ -414,7 +413,8 @@ void CHotplug::parse_event(const char *msg)
 									log_debug("major:%d\n", hotplug_info.major);
 									log_debug("minor:%d\n", hotplug_info.minor);
 									log_debug("id_driver:%s\n", hotplug_info.id_driver.c_str());
-*/
+									hotplug_callback_func_ptr(&hotplug_info);
+
 								}//end find "ID_USB_DRIVER"
 							}//end find "MINOR"
 						}//end find "MAJOR"
