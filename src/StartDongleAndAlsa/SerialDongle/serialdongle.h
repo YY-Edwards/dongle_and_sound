@@ -106,8 +106,10 @@ private:
 	bool  fWaitingOnPCM;
 	bool  fWaitingOnAMBE;
 
-	int send_index; 
-	int recv_index;
+	//int send_index; 
+	//int recv_index;
+
+
 
 	//AMBE-Queue
 	tAMBEFrame      m_AMBE_CirBuff[MAXDONGLEAMBEFRAMES];
@@ -180,6 +182,7 @@ public:
 private:
 	unsigned int dataType;
 	uint8_t thePCMFrameFldSamples[THEPCMFRAMEFLDSAMPLESLENGTH];
+	DynRingQueue *the_pcm_sample_queue_ptr;
 	CUsartWrap	m_usartwrap;
 	
 	int pcm_voice_fd;

@@ -22,6 +22,7 @@ CSerialDongle::CSerialDongle()
 	DongleRxDataCallBackFunc = nullptr;
 	m_dwExpectedDongleRead = AMBE3000_PCM_BYTESINFRAME;
 	//m_dwExpectedDongleRead = AMBE3000_AMBE_BYTESINFRAME
+	the_pcm_sample_queue_ptr = new DynRingQueue(320, 30);
 	memset(thePCMFrameFldSamples, 0, THEPCMFRAMEFLDSAMPLESLENGTH);
 	dataType = 0;
 	m_rComm = 0;
@@ -263,6 +264,13 @@ void CSerialDongle::close_dongle(void)
 		pcm_voice_fd = 0;
 	}
 
+	if (the_pcm_sample_queue_ptr != nullptr)
+	{
+		delete the_pcm_sample_queue_ptr;
+		the_pcm_sample_queue_ptr = nullptr;
+	}
+
+
 }
 
 int CSerialDongle::aio_read_file(struct aiocb *r_cbp_ptr, int fd, int size)
@@ -381,7 +389,7 @@ int CSerialDongle::SerialRxThreadFunc()
 	struct timespec timeout;
 	timeout.tv_sec = 0;
 	timeout.tv_nsec = 5*1000*1000;
-	recv_index = 0;
+	//recv_index = 0;
 
 	do
 	{
@@ -488,7 +496,7 @@ int CSerialDongle::SerialTxThreadFunc()
 	auto ret = 0;
 	int  snapPCMBufHead;
 	int  snapAMBEBufHead;
-	send_index = 0;
+	//send_index = 0;
 
 	do
 	{
@@ -636,8 +644,8 @@ void CSerialDongle::aio_write_completion_hander(int signo, siginfo_t *info, void
 						pThis->fWaitingOnPCM = false;
 						pThis->fWaitingOnAMBE = false;
 
-						pThis->send_index++;
-						log_debug("dongle send ambe index:%d\n", pThis->send_index);
+						//pThis->send_index++;
+						//log_debug("dongle send ambe index:%d\n", pThis->send_index);
 					}
 
 				break;
@@ -899,8 +907,8 @@ int CSerialDongle::AssembleMsg(int numBytes, int * dwBytesAssembled)
 					bytecount = 0;
 					WholeMessageCount++;
 					log_debug("Parse pcm-msg okay.\n");
-					recv_index++;
-					log_debug("recv pcm-msg index:%d\n", recv_index);
+					//recv_index++;
+					//log_debug("recv pcm-msg index:%d\n", recv_index);
 				}
 				break;
 			default:
@@ -920,6 +928,7 @@ void CSerialDongle::ParseDVSImsg(DVSI3000struct* pMsg)
 	uint8_t mType;
 	mType = pMsg->base.Type;	//strip out just type field
 	dataType = mType;
+	auto ret = 0;
 	switch (mType){
 	case AMBE3000_AMBE_TYPE_BYTE:
 		//is a compressed data frame from the Dongle
@@ -932,7 +941,13 @@ void CSerialDongle::ParseDVSImsg(DVSI3000struct* pMsg)
 		//SHORT coming from Dongle is Big-endian. 
 		//Do conversion in destination.
 		//m_directSound.BigEndianSoundOut( (unsigned __int8*)&(pMsg->PCMType.thePCMFrame.fld.Samples[0]) );
-		memcpy(thePCMFrameFldSamples, (uint8_t*)&(pMsg->PCMType.thePCMFrame.fld.Samples[0]), THEPCMFRAMEFLDSAMPLESLENGTH);
+		//memcpy(thePCMFrameFldSamples, (uint8_t*)&(pMsg->PCMType.thePCMFrame.fld.Samples[0]), THEPCMFRAMEFLDSAMPLESLENGTH);
+		ret = the_pcm_sample_queue_ptr->PushToQueue((void*)(pMsg->PCMType.thePCMFrame.fld.Samples[0]), THEPCMFRAMEFLDSAMPLESLENGTH);
+		if (ret != true)
+		{
+			log_warning("the_pcm_sample_queue_ptr->PushToQueue full!!!\n");
+		}
+
 		break;
 	case AMBE3000_CCP_TYPE_BYTE:
 	
@@ -998,7 +1013,16 @@ void CSerialDongle::extract_voice(char * pBuffer, int len)
 
 uint8_t * CSerialDongle::read_dongle_data()
 {
-	if (AMBE3000_PCM_TYPE_BYTE == dataType)
+	
+
+	//if (AMBE3000_PCM_TYPE_BYTE == dataType)
+	//{
+	//	dataType = 0;
+	//	return thePCMFrameFldSamples;
+	//}
+	int len = 0;
+	auto ret = the_pcm_sample_queue_ptr->TakeFromQueue(thePCMFrameFldSamples, (int &)len, true);
+	if (ret != 0)
 	{
 		dataType = 0;
 		return thePCMFrameFldSamples;
@@ -1006,8 +1030,8 @@ uint8_t * CSerialDongle::read_dongle_data()
 	else
 	{
 		log_warning("aio_read underrun!\n");
+		return NULL;
 	}
-	return NULL;
 
 }
 
