@@ -44,7 +44,7 @@ bool CStartDongleAndSound::start(const char *lpszDevice, const char *pcm_name)
 			log_warning("open dongle failure!\n");
 			return false;
 		}
-		log_debug("open a new dongle\n");
+		log_debug("open a new dongle okay\n");
 		m_new_dongle_ptr->send_dongle_initialization();
 
 		timer();

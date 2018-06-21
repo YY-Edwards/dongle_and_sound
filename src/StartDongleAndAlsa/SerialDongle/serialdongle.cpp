@@ -727,8 +727,9 @@ bool CSerialDongle::MarkAMBEBufferFilled(void)
 	}
 	else
 	{
-		return ret;
+		ret = false;;
 	}
+	return ret;
 }
 
 

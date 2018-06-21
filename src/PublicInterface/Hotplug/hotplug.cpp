@@ -427,7 +427,7 @@ void CHotplug::parse_event(const char *msg)
 										tt.clear();//clear tt
 
 										//ÆôÓÃ»Øµ÷
-										log_debug("\r\n");
+										/*log_debug("\r\n");
 										log_debug("recv hotplug info:\n");
 										log_debug("action:%s\n", hotplug_info.action.c_str());
 										log_debug("devpath:%s\n", hotplug_info.path.c_str());
@@ -436,7 +436,7 @@ void CHotplug::parse_event(const char *msg)
 										log_debug("major:%d\n", hotplug_info.major);
 										log_debug("minor:%d\n", hotplug_info.minor);
 										log_debug("id_vendor:%s\n", hotplug_info.id_vendor.c_str());
-										log_debug("id_model:%s\n", hotplug_info.id_model.c_str());
+										log_debug("id_model:%s\n", hotplug_info.id_model.c_str());*/
 										hotplug_callback_func_ptr(&hotplug_info);
 
 									}//end find "ID_MODEL"
