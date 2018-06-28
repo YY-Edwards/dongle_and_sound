@@ -14,6 +14,7 @@
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\PublicInterface\FifoQueue\fifoqueue.cpp" />
     <ClCompile Include="src\PublicInterface\Hotplug\hotplug.cpp" />
+    <ClCompile Include="src\PublicInterface\Logger\logger.cpp" />
     <ClCompile Include="src\PublicInterface\SocketWrap\socketwrap.cpp" />
     <ClCompile Include="src\PublicInterface\SynInterface\syninterface.cpp" />
     <ClCompile Include="src\StartDongleAndAlsa\AudioAlsa\audioalsa.cpp" />
@@ -26,6 +27,7 @@
     <ClInclude Include="src\log.h" />
     <ClInclude Include="src\PublicInterface\FifoQueue\fifoqueue.h" />
     <ClInclude Include="src\PublicInterface\Hotplug\hotplug.h" />
+    <ClInclude Include="src\PublicInterface\Logger\logger.h" />
     <ClInclude Include="src\PublicInterface\SocketWrap\socketwrap.h" />
     <ClInclude Include="src\PublicInterface\SynInterface\syninterface.h" />
     <ClInclude Include="src\StartDongleAndAlsa\AudioAlsa\audioalsa.h" />

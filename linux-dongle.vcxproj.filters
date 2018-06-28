@@ -40,6 +40,9 @@
     <Filter Include="DongleAndAlsa\AudioAlsa\Usart">
       <UniqueIdentifier>{ddb4b4c8-fc0c-4f0f-a731-fdbede172f4e}</UniqueIdentifier>
     </Filter>
+    <Filter Include="PublicInterface\Logger">
+      <UniqueIdentifier>{7e2f6502-44d2-4437-a4a3-95c7902d19e0}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\main.cpp">
@@ -68,6 +71,9 @@
     </ClCompile>
     <ClCompile Include="src\StartDongleAndAlsa\AudioAlsa\audioalsa.cpp">
       <Filter>DongleAndAlsa\AudioAlsa</Filter>
+    </ClCompile>
+    <ClCompile Include="src\PublicInterface\Logger\logger.cpp">
+      <Filter>PublicInterface\Logger</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -103,6 +109,9 @@
     </ClInclude>
     <ClInclude Include="src\StartDongleAndAlsa\AudioAlsa\audioalsa.h">
       <Filter>DongleAndAlsa\AudioAlsa</Filter>
+    </ClInclude>
+    <ClInclude Include="src\PublicInterface\Logger\logger.h">
+      <Filter>PublicInterface\Logger</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
