@@ -15,34 +15,55 @@
   #include <memory>
   #include <stdarg.h>
 
-void CLogger::set_file_name(const char* filename)
+void CLogger::set_file_name(const char* info_filename, const char* warning_filename)
 {
 
-	filename_ = filename;
-
+	info_filename_ = info_filename;
+	warning_filename_ = warning_filename;
+	info_fp_ = NULL;
+	warning_fp_ = NULL;
 }
 
 bool CLogger::start()
 {
-	if (filename_.empty())//使用默认的文件名
+	if (info_filename_.empty())//使用默认的文件名
 	{
 		time_t temp_now = time(NULL);
 		struct tm t;
 		localtime_r(&temp_now, &(t));//拷贝数据并贴上时间戳
 		char timestr[64] = { 0 };
 		sprintf(timestr,
-			"%04d%02d%02d%02d%02d%02d.loggerserver.log",
+			"%04d%02d%02d%02d%02d%02d.loggerserver_info.log",
 			t.tm_year + 1900,
 			t.tm_mon + 1,
 			t.tm_mday,
 			t.tm_hour,
 			t.tm_min,
 			t.tm_sec);
-		filename_ = timestr;
+		info_filename_ = timestr;
 	}
+
+	if (warning_filename_.empty())//使用默认的文件名
+	{
+		time_t temp_now = time(NULL);
+		struct tm t;
+		localtime_r(&temp_now, &(t));//拷贝数据并贴上时间戳
+		char timestr[64] = { 0 };
+		sprintf(timestr,
+			"%04d%02d%02d%02d%02d%02d.loggerserver_warning.log",
+			t.tm_year + 1900,
+			t.tm_mon + 1,
+			t.tm_mday,
+			t.tm_hour,
+			t.tm_min,
+			t.tm_sec);
+		warning_filename_ = timestr;
+	}
+
 	
-	fp_ = fopen(filename_.c_str(), "wt+");
-	if (fp_ == NULL)
+	info_fp_ = fopen(info_filename_.c_str(), "wt+");
+	warning_fp_ = fopen(warning_filename_.c_str(), "wt+");
+	if (warning_fp_ == NULL || info_fp_ == NULL)
 	{
 		return false;
 	}
@@ -66,6 +87,7 @@ bool CLogger::start()
 		*/
 		
 		//创建线程
+		exit_flag_ = false;
 		s_pthread_.reset(new std::thread(std::bind(&CLogger::threadfunc, this)));
 		return true;
 	}
@@ -79,6 +101,8 @@ void CLogger::stop()
 	cv_.notify_one();
 
 	s_pthread_->join();
+	fclose(info_fp_);
+	fclose(warning_fp_);
 
 }
 
@@ -122,7 +146,7 @@ void CLogger::add_to_queue(const char* psz_level,
 
 	{
 		std::lock_guard<std::mutex> guard(mutex_);
-		queue_.emplace_back(content);
+		queue_.emplace_back(psz_level, content);//C++11中效率比push_back更高
 	
 	}
 
@@ -130,4 +154,34 @@ void CLogger::add_to_queue(const char* psz_level,
 
 	cv_.notify_one();
 
+}
+
+void CLogger::threadfunc()
+{
+	if (info_fp_ == NULL || warning_fp_ ==NULL)
+		return;
+
+	while (!exit_flag_)
+	{
+		std::unique_lock<std::mutex> guard(mutex_);
+		while (queue_.empty())
+		{
+			if (exit_flag_)
+				return;
+			cv_.wait(guard);
+
+		}
+	
+		const std::string &msg_str = queue_.front().second;
+		const std::string &level_str = queue_.front().first;
+		if (level_str.compare("WARNING") == 0)
+		{
+			fwrite((void*)msg_str.c_str(), msg_str.length(), 1, warning_fp_);
+			fflush(warning_fp_);//提高写入效率
+		}
+		fwrite((void*)msg_str.c_str(), msg_str.length(), 1, info_fp_);
+		fflush(info_fp_);//提高写入效率
+		queue_.pop_front();
+
+	}
 }

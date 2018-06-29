@@ -19,12 +19,9 @@
 #include <list>
 
 
-//#define LogInfo(...)
-//	CLogger::get_instance().AddToQueue("INFO", __FILE__, __LINE__, __PRETTY_FUNCTION__, __VA_ARGS__)
-//#define LogWarning(...)
-//	CLogger::get_instance().AddToQueue("WARNING", __FILE__, __LINE__, __PRETTY_FUNCTION__, __VA_ARGS__)
-//#define LogError(...)
-//	CLogger::get_instance().AddToQueue("ERROR", __FILE__, __LINE__, __PRETTY_FUNCTION__, __VA_ARGS__)
+#define LogInfo(...)	CLogger::get_instance().AddToQueue("INFO", __FILE__, __LINE__, __PRETTY_FUNCTION__, __VA_ARGS__)
+#define LogWarning(...) CLogger::get_instance().AddToQueue("WARNING", __FILE__, __LINE__, __PRETTY_FUNCTION__, __VA_ARGS__)
+#define LogError(...)	CLogger::get_instance().AddToQueue("ERROR", __FILE__, __LINE__, __PRETTY_FUNCTION__, __VA_ARGS__)
 
 class CLogger
 {
@@ -37,7 +34,7 @@ public:
 		return theClogger;
 	}
 
-	void set_file_name(const char* filename);
+	void set_file_name(const char* info_filename, const char* warning_filename);
 	bool start();
 	void stop();
 
@@ -57,14 +54,20 @@ private:
 
 
 private:
-	std::string  filename_;
-	FILE*		 fp_;
+	std::string  info_filename_;
+	std::string  warning_filename_;
+	std::string  err_filename_;
+
+	FILE*		 info_fp_;
+	FILE*		 warning_fp_;
+
 	std::shared_ptr<std::thread>	s_pthread_;
 	std::mutex						mutex_;
 	std::condition_variable			cv_;
 
 	bool		exit_flag_;
-	std::list<std::string>			queue_;
+	//log_level,log_msg
+	std::list<std::pair<std::string, std::string>>			queue_;
 
 };
 
