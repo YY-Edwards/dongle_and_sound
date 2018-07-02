@@ -74,7 +74,7 @@ CHotplug::CHotplug()
 ,event_parse_thread_p(nullptr)
 , hotplug_callback_func_ptr(nullptr)
 {
-	log_debug("New: CHotplug \n");
+	log_info("New: CHotplug \n");
 	set_thread_exit_flag = false;
 	pThis = this;
 	event_queue_ptr = nullptr;
@@ -92,7 +92,7 @@ CHotplug::~CHotplug()
 		delete event_queue_ptr;
 		event_queue_ptr = nullptr;
 	}
-	log_debug("Destory: CHotplug \n");
+	log_info("Destory: CHotplug \n");
 
 }
 
@@ -125,7 +125,7 @@ int CHotplug::init_netlink_socket(bool bForceClose)
 	}
 	else//socket已存在
 	{
-		log_debug("s_netlink_client already exists\n");
+		log_info("s_netlink_client already exists\n");
 		return 0;
 	}
 
@@ -152,7 +152,7 @@ int CHotplug::init_netlink_socket(bool bForceClose)
 	//设置为非阻塞模式
 	SocketBlock(s_netlink_client, 0);
 	
-	log_debug("socket_fd: %d\n", s_netlink_client);
+	log_info("socket_fd: %d\n", s_netlink_client);
 
 
 	return 0;
@@ -194,7 +194,7 @@ int CHotplug::HotplugMonitorThreadFunc()
 	memset(msg, 0x00, (UEVENT_MSG_LEN + 2));
 
 
-	log_debug("HotplugMonitorThreadFunc is running, pid:%ld\n", syscall(SYS_gettid));
+	log_info("HotplugMonitorThreadFunc is running, pid:%ld\n", syscall(SYS_gettid));
 
 	while (!set_thread_exit_flag)
 	{
@@ -218,7 +218,7 @@ int CHotplug::HotplugMonitorThreadFunc()
 			SocketRecv(s_netlink_client, (char *)msg, UEVENT_MSG_LEN, rt);
 			if (rt.nbytes > 0)
 			{
-				//log_debug("rt.nbytes:%d\n", rt.nbytes);
+				//log_info("rt.nbytes:%d\n", rt.nbytes);
 				replace_char(msg, rt.nbytes, '\0', '\n');//替换用以隔断的结束符
 				msg[rt.nbytes] = '\0';
 				msg[rt.nbytes + 1] = '\0';
@@ -235,7 +235,7 @@ int CHotplug::HotplugMonitorThreadFunc()
 			}
 			else if ((rt.nbytes == -1) && (rt.nresult == 1))
 			{
-				log_debug("SocketRecv Timeout\n");
+				log_info("SocketRecv Timeout\n");
 			}
 			else if ((rt.nresult == -1))
 			{
@@ -250,7 +250,7 @@ int CHotplug::HotplugMonitorThreadFunc()
 
 	}
 
-	log_debug("exit HotplugMonitorThreadFunc: 0x%x\r\n", hotplug_monitor_thread_p->GetPthreadID());
+	log_info("exit HotplugMonitorThreadFunc: 0x%x\r\n", hotplug_monitor_thread_p->GetPthreadID());
 
 	return return_value;
 
@@ -271,7 +271,7 @@ void *CHotplug::EventParseThread(void* p)
 }
 int CHotplug::EventParseThreadFunc()
 {
-	log_debug("EventParseThreadFunc is running, pid:%ld\n", syscall(SYS_gettid));
+	log_info("EventParseThreadFunc is running, pid:%ld\n", syscall(SYS_gettid));
 
 	int return_value = 0;
 	char readbuff[1500] = { 0 };
@@ -288,12 +288,12 @@ int CHotplug::EventParseThreadFunc()
 		}
 		else
 		{
-			log_debug("event_queue: empty!!!\r\n");
+			log_info("event_queue: empty!!!\r\n");
 		}
 
 	}
 
-	log_debug("exit EventParseThreadFunc: 0x%x\r\n", event_parse_thread_p->GetPthreadID());
+	log_info("exit EventParseThreadFunc: 0x%x\r\n", event_parse_thread_p->GetPthreadID());
 
 	return return_value;
 
@@ -304,9 +304,9 @@ void CHotplug::parse_event(const char *msg)
 	string temp_str = msg;//转换为string类型
 	string tt = "";
 
-	//log_debug("recv:%s\n", msg);
+	//log_info("recv:%s\n", msg);
 	//log("%s\n", msg);
-	//log_debug("recv hotplug info:\n");
+	//log_info("recv hotplug info:\n");
 	auto  last = 0;
 	auto  end_index = 0;
 
@@ -427,16 +427,16 @@ void CHotplug::parse_event(const char *msg)
 										tt.clear();//clear tt
 
 										//启用回调
-										/*log_debug("\r\n");
-										log_debug("recv hotplug info:\n");
-										log_debug("action:%s\n", hotplug_info.action.c_str());
-										log_debug("devpath:%s\n", hotplug_info.path.c_str());
-										log_debug("subsystem:%s\n", hotplug_info.subsystem.c_str());
-										log_debug("devname:%s\n", hotplug_info.devname.c_str());
-										log_debug("major:%d\n", hotplug_info.major);
-										log_debug("minor:%d\n", hotplug_info.minor);
-										log_debug("id_vendor:%s\n", hotplug_info.id_vendor.c_str());
-										log_debug("id_model:%s\n", hotplug_info.id_model.c_str());*/
+										/*log_info("\r\n");
+										log_info("recv hotplug info:\n");
+										log_info("action:%s\n", hotplug_info.action.c_str());
+										log_info("devpath:%s\n", hotplug_info.path.c_str());
+										log_info("subsystem:%s\n", hotplug_info.subsystem.c_str());
+										log_info("devname:%s\n", hotplug_info.devname.c_str());
+										log_info("major:%d\n", hotplug_info.major);
+										log_info("minor:%d\n", hotplug_info.minor);
+										log_info("id_vendor:%s\n", hotplug_info.id_vendor.c_str());
+										log_info("id_model:%s\n", hotplug_info.id_model.c_str());*/
 										hotplug_callback_func_ptr(&hotplug_info);
 
 									}//end find "ID_MODEL"
@@ -493,7 +493,7 @@ void CHotplug::monitor_start(void)
 
 void CHotplug::monitor_stop(void)
 {
-	log_debug("SetThreadExit: HotplugMonitorThread\n");
+	log_info("SetThreadExit: HotplugMonitorThread\n");
 	SetThreadExitFlag();
 	if (hotplug_monitor_thread_p != nullptr)
 	{

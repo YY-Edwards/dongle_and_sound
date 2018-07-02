@@ -3,7 +3,7 @@ CXX = g++
 
 #需要的头文件路径
 INC += \
--I /usr/include/
+-I /usr/include/ \
 -I /usr/local/include/
 
 CXXFLAGS += -g -pthread -lrt -Wl,--as-needed -std=c++11

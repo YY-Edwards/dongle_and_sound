@@ -15,7 +15,7 @@ CUsartWrap::CUsartWrap()
 :w_fd(0)
 , r_fd(0)
 {
-	log_debug("New: CUsartWrap \n");
+	log_info("New: CUsartWrap \n");
 }
 
 CUsartWrap::~CUsartWrap()
@@ -26,7 +26,7 @@ CUsartWrap::~CUsartWrap()
 	if (r_fd != 0){
 		close(r_fd);
 	}
-	log_debug("Destory: CUsartWrap \n");
+	log_info("Destory: CUsartWrap \n");
 }
 void CUsartWrap::flush_dev(int dev_fd, int flags)
 {

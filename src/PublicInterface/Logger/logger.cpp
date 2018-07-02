@@ -9,7 +9,7 @@
 * @revision time :20180628
 **/
   
-  #include "Logger.h"
+  #include "logger.h"
   #include <time.h>
   #include <stdio.h>
   #include <memory>
@@ -69,6 +69,11 @@ bool CLogger::start()
 	}
 	else
 	{
+		auto ret = fseek(info_fp_, 0, SEEK_END);
+		ret = fseek(warning_fp_, 0, SEEK_END);
+		if (ret != 0)
+			return false;
+
 		/*
 		bind是这样一种机制，它可以将参数绑定于可调用对象，产生一个新的可调用实体，
 		这种机制在函数回调时颇为有用。C++98中，有两个函数bind1st和bind2nd，
@@ -118,10 +123,10 @@ void CLogger::add_to_queue(const char* psz_level,
 	va_list vArgList;
 
 	//对va_list变量进行初始化，将vArgList指针指向参数列表中的第一个参数
-	va_start(vArgList, pszFmt);
+	va_start(vArgList, psz_fmt);
 
 	//将vArgList(通常是字符串) 按format格式写入字符串string中
-	vsnprintf(msg, 256, pszFmt, vArgList);
+	vsnprintf(msg, 256, psz_fmt, vArgList);
 	//回收vArgList指针
 	va_end(vArgList);
 

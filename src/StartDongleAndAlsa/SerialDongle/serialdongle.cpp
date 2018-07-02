@@ -29,13 +29,13 @@ CSerialDongle::CSerialDongle()
 	m_wComm = 0;
 	pcm_voice_fd = 0;
 	pThis = this;
-	log_debug("New: CSerialDongle\n");
+	log_info("New: CSerialDongle\n");
 }
 
 CSerialDongle::~CSerialDongle()
 {
 	close_dongle();
-	log_debug("Destory: CSerialDongle\n");
+	log_info("Destory: CSerialDongle\n");
 }
 
 int	CSerialDongle::open_dongle(const char *lpsz_Device)
@@ -64,8 +64,8 @@ int	CSerialDongle::open_dongle(const char *lpsz_Device)
 	}
 	else
 	{
-		log_debug("open usart okay,r_fd:%d\n", r_ret);
-		log_debug("open usart okay,w_fd:%d\n", w_ret);
+		log_info("open usart okay,r_fd:%d\n", r_ret);
+		log_info("open usart okay,w_fd:%d\n", w_ret);
 
 		m_rComm = r_ret;
 		m_wComm = w_ret;
@@ -205,16 +205,16 @@ void CSerialDongle::send_dongle_initialization(void)//send control packets
 
 void CSerialDongle::close_dongle(void)
 {
-	log_debug("close dongle resource...\n");
+	log_info("close dongle resource...\n");
 	SetThreadExitFlag();
 	if (m_wComm != 0)
 	{
 		auto w_ret = aio_cancel(m_wComm, &w_cbp);
 		if (w_ret < 0 )
-			log_debug("m_wComm aio_cancle errno:%s\n", strerror(errno));
+			log_info("m_wComm aio_cancle errno:%s\n", strerror(errno));
 		else
 		{
-			log_debug("m_wComm aio_cancle return:%d\n", w_ret);
+			log_info("m_wComm aio_cancle return:%d\n", w_ret);
 		}
 	}
 	
@@ -222,10 +222,10 @@ void CSerialDongle::close_dongle(void)
 	{
 		auto r_ret = aio_cancel(m_rComm, &r_cbp);
 		if (r_ret < 0)
-			log_debug("m_rComm aio_cancle errno:%s\n", strerror(errno));
+			log_info("m_rComm aio_cancle errno:%s\n", strerror(errno));
 		else
 		{
-			log_debug("m_rComm aio_cancle return:%d\n", r_ret);
+			log_info("m_rComm aio_cancle return:%d\n", r_ret);
 		}
 	}
 
@@ -376,7 +376,7 @@ void *CSerialDongle::SerialRxThread(void* p)//must be static since is thread
 }
 int CSerialDongle::SerialRxThreadFunc()
 {
-	log_debug("SerialRxThreadFunc is running, pid:%ld", syscall(SYS_gettid));
+	log_info("SerialRxThreadFunc is running, pid:%ld", syscall(SYS_gettid));
 	int dwBytesConsumed;
 	int  AssembledCount;
 	auto read_nbytes = 0;
@@ -424,7 +424,7 @@ int CSerialDongle::SerialRxThreadFunc()
 		{
 			if ((ret = aio_error(&r_cbp)) != 0)
 			{
-				log_debug("qio_error() ret:%d", ret);
+				log_info("qio_error() ret:%d", ret);
 				if (ret == -1)
 				{
 					log_warning("qio_error() errno:%s\n", strerror(errno));
@@ -435,7 +435,7 @@ int CSerialDongle::SerialRxThreadFunc()
 			{
 				//请求操作完成，获取返回值
 				read_nbytes = aio_return(&r_cbp);
-				log_debug("dongle recv pcm:%d bytes\n", read_nbytes);
+				log_info("dongle recv pcm:%d bytes\n", read_nbytes);
 				if (read_nbytes > 0)
 				{
 					//assemble:注意是同步解析。如需要异步，则用环形队列作缓冲。
@@ -444,7 +444,7 @@ int CSerialDongle::SerialRxThreadFunc()
 				}
 				else if (read_nbytes < 0)
 				{
-					log_debug("aio_return() ret:%d, errno:%s\n", read_nbytes, strerror(errno));
+					log_info("aio_return() ret:%d, errno:%s\n", read_nbytes, strerror(errno));
 					break;
 				}
 
@@ -457,14 +457,14 @@ int CSerialDongle::SerialRxThreadFunc()
 			{
 				dwImmediateExpectations = m_dwExpectedDongleRead;
 				purge_dongle(m_rComm, TCIFLUSH);//刷新收到的数据
-				log_debug("switch read voice type:\n");
+				log_info("switch read voice type:\n");
 			}
 		}
 
 		//read_nbytes = m_usartwrap.recv(&m_DongleRxBuffer, dwImmediateExpectations, dwCurrentTimeout);
 		//if (read_nbytes >= 0)
 		//{
-		//	log_debug("dongle recv pcm:%d bytes\n", read_nbytes);
+		//	log_info("dongle recv pcm:%d bytes\n", read_nbytes);
 		//	//assemble:注意是同步解析。如需要异步，则用环形队列作缓冲。
 		//	AssembledCount = AssembleMsg(read_nbytes, &dwBytesConsumed);
 		//
@@ -476,7 +476,7 @@ int CSerialDongle::SerialRxThreadFunc()
 
 	} while (!m_PleaseStopSerial);
 
-	log_debug("exit SerialRxThreadFunc: 0x%x\r\n", serial_rx_thread_p->GetPthreadID());
+	log_info("exit SerialRxThreadFunc: 0x%x\r\n", serial_rx_thread_p->GetPthreadID());
 	return ret;
 }
 void *CSerialDongle::SerialTxThread(void* p)//must be static since is thread
@@ -492,7 +492,7 @@ void *CSerialDongle::SerialTxThread(void* p)//must be static since is thread
 }
 int CSerialDongle::SerialTxThreadFunc()
 {
-	log_debug("SerialTxThreadFunc is running, pid:%ld", syscall(SYS_gettid));
+	log_info("SerialTxThreadFunc is running, pid:%ld", syscall(SYS_gettid));
 	auto ret = 0;
 	int  snapPCMBufHead;
 	int  snapAMBEBufHead;
@@ -539,7 +539,7 @@ int CSerialDongle::SerialTxThreadFunc()
 				if (snapAMBEBufHead != m_AMBEBufTail){  //AMBE to send
 					fWaitingOnAMBE = true;
 					fWaitingOnWrite = true;
-					log_debug("dongle send ambe buff:\n");
+					log_info("dongle send ambe buff:\n");
 					aio_write_file(&w_cbp, m_wComm, &(m_AMBE_CirBuff[m_AMBEBufTail].All[0]), AMBE3000_AMBE_BYTESINFRAME);
 					//m_usartwrap.send(&(m_AMBE_CirBuff[m_AMBEBufTail].All[0]), AMBE3000_AMBE_BYTESINFRAME);
 				}
@@ -551,7 +551,7 @@ int CSerialDongle::SerialTxThreadFunc()
 
 	} while (!m_PleaseStopSerial);
 
-	log_debug("exit SerialTxThreadFunc: 0x%x\r\n", serial_tx_thread_p->GetPthreadID());
+	log_info("exit SerialTxThreadFunc: 0x%x\r\n", serial_tx_thread_p->GetPthreadID());
 	return ret;
 }
 
@@ -565,7 +565,7 @@ int CSerialDongle::SerialTxThreadFunc()
 //	if (info->si_signo == SIGIO)//确定是我们需要的信号
 //	{
 //
-//		log_debug("r-signal code:%d\n", info->si_code);
+//		log_info("r-signal code:%d\n", info->si_code);
 //		//获取aiocb 结构体的信息
 //		//req = (struct aiocb*) sigval.sival_ptr;
 //		req = (struct aiocb*) info->si_value.sival_ptr;
@@ -573,15 +573,15 @@ int CSerialDongle::SerialTxThreadFunc()
 //		/*AIO请求完成？*/
 //		if ((ret = aio_error(req)) == 0)
 //		{
-//			log_debug("\r\n\r\n");
-//			log_debug("aio_read complete[.]\n");
+//			log_info("\r\n\r\n");
+//			log_info("aio_read complete[.]\n");
 //			ret = aio_return(req);
-//			log_debug("aio_read :%d bytes\n", ret);
+//			log_info("aio_read :%d bytes\n", ret);
 //		
 //		}
 //		else
 //		{
-//			log_debug("AIO read uncomplete:%d\n", ret);
+//			log_info("AIO read uncomplete:%d\n", ret);
 //		}
 //	}
 //	else
@@ -602,36 +602,36 @@ void CSerialDongle::aio_write_completion_hander(int signo, siginfo_t *info, void
 
 	if (info->si_signo == SIGIO)//确定是我们需要的信号
 	{
-		//log_debug("w-signal code:%d\n", info->si_code); 
+		//log_info("w-signal code:%d\n", info->si_code); 
 		//获取aiocb 结构体的信息
 		req = (struct aiocb*) info->si_value.sival_ptr;
 
 		/*AIO请求完成？*/
 		ret = aio_error(req);
-		log_debug("\r\n\r\n");
-		//log_debug("aio write status:%d\n", ret);
+		log_info("\r\n\r\n");
+		//log_info("aio write status:%d\n", ret);
 		switch (ret)
 		{
 			case EINPROGRESS://working
-				log_debug("aio write is EINPROGRESS.\n");
+				log_info("aio write is EINPROGRESS.\n");
 				break;
 
 			case ECANCELED://cancelled
-				log_debug("aio write is ECANCELLED.\n");
+				log_info("aio write is ECANCELLED.\n");
 				break;
 
 			case -1://failure
-				log_debug("aio write is failure, errno:%s\n", strerror(errno));
+				log_info("aio write is failure, errno:%s\n", strerror(errno));
 				break;
 
 			case 0://success
 
 					ret = aio_return(req);
-					log_debug("aio_write :%d bytes.\n", ret);
+					log_info("aio_write :%d bytes.\n", ret);
 					nwrited += ret;
 					if (nwrited == AMBE3000_AMBE_BYTESINFRAME || nwrited == AMBE3000_PCM_BYTESINFRAME)
 					{
-						log_debug("aio_write complete[.]\n");
+						log_info("aio_write complete[.]\n");
 						nwrited = 0;
 						if (pThis->fWaitingOnPCM){
 							pThis->m_PCMBufTail = (pThis->m_PCMBufTail + 1) & MAXDONGLEPCMFRAMESMASK;
@@ -645,7 +645,7 @@ void CSerialDongle::aio_write_completion_hander(int signo, siginfo_t *info, void
 						pThis->fWaitingOnAMBE = false;
 
 						//pThis->send_index++;
-						//log_debug("dongle send ambe index:%d\n", pThis->send_index);
+						//log_info("dongle send ambe index:%d\n", pThis->send_index);
 					}
 
 				break;
@@ -665,7 +665,7 @@ void CSerialDongle::set_rx_serial_event()
 	if (rx_serial_event_cond != nullptr)
 	{
 		rx_serial_event_cond->CondTrigger(false);
-		log_debug("timer set read event[:]\n");
+		log_info("timer set read event[:]\n");
 	}
 
 }
@@ -683,7 +683,7 @@ void CSerialDongle::set_tx_serial_event()
 
 	if (tx_serial_event_cond != nullptr)
 	{
-		log_debug("timer set write event[:]\n");
+		log_info("timer set write event[:]\n");
 		tx_serial_event_cond->CondTrigger(false);
 		
 	}
@@ -906,9 +906,9 @@ int CSerialDongle::AssembleMsg(int numBytes, int * dwBytesAssembled)
 					*dwBytesAssembled += bytecount;
 					bytecount = 0;
 					WholeMessageCount++;
-					log_debug("Parse pcm-msg okay.\n");
+					log_info("Parse pcm-msg okay.\n");
 					//recv_index++;
-					//log_debug("recv pcm-msg index:%d\n", recv_index);
+					//log_info("recv pcm-msg index:%d\n", recv_index);
 				}
 				break;
 			default:
@@ -1053,7 +1053,7 @@ void CSerialDongle::get_read_dongle_data()
 			{
 				log_warning("write pcm-voice uncompleted:%ld\r\n", ret);
 			}
-			log_debug("save pcm data okay.\n");
+			log_info("save pcm data okay.\n");
 		}
 	}
 	set_read_dongle_data();

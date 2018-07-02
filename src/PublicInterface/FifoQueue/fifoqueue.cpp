@@ -32,7 +32,7 @@ DynFifoQueue::DynFifoQueue(int fifo_deep, int data_deep)
 		(ptr_fifo + i)->len = 0;
 	}
 
-	log_debug("dynamic queue created\n");
+	log_info("dynamic queue created\n");
 }
 
 DynFifoQueue::~DynFifoQueue()
@@ -63,7 +63,7 @@ DynFifoQueue::~DynFifoQueue()
 		delete[]ptr_fifo;
 		ptr_fifo = NULL;
 	}
-	log_debug("delete:dynamic queue\n");
+	log_info("delete:dynamic queue\n");
 
 }
 
@@ -385,7 +385,7 @@ DynRingQueue::DynRingQueue(int ring_deep, int data_deep)
 	queue_head = 0;
 	queue_tail = 0;
 
-	log_debug("dynamic ring queue created\n");
+	log_info("dynamic ring queue created\n");
 }
 DynRingQueue::~DynRingQueue()
 {
@@ -410,7 +410,7 @@ DynRingQueue::~DynRingQueue()
 		delete[]ptr_ring;
 		ptr_ring = NULL;
 	}
-	log_debug("delete:dynamic ring queue\n");
+	log_info("delete:dynamic ring queue\n");
 
 }
 void DynRingQueue::ClearQueue()

@@ -16,7 +16,9 @@
 #include <stdio.h>
 #include "hotplug.h"
 #include "startdongleandalsa.h"
-#include "log.h"
+#include "config.h"
+//#include "log.h"
+
 
 using namespace std;
 
@@ -64,11 +66,11 @@ static void extract_hotplug_info_func(hotplug_info_t *hpug_ptr)
 		&& (temp_ptr->id_vendor.compare(compare_id_vendor) == 0)
 		)
 	{
-		log_debug("\r\n");
-		log_debug("find the dongle device\n");
-		log_debug("action:%s\n", temp_ptr->action.c_str());
-		log_debug("devpath:%s\n", temp_ptr->path.c_str());
-		log_debug("devname:%s\n", temp_ptr->devname.c_str());
+		log_info("\r\n");
+		log_info("find the dongle device\n");
+		log_info("action:%s\n", temp_ptr->action.c_str());
+		log_info("devpath:%s\n", temp_ptr->path.c_str());
+		log_info("devname:%s\n", temp_ptr->devname.c_str());
 		if (temp_ptr->action.compare(action_add) == 0)
 		{
 			if (m_startdongle != nullptr)
@@ -108,11 +110,13 @@ int main(int argc, char** argv)
 	signal(SIGCHLD, signal_handler);
 #endif
 
-	openmylog("dongle-app", LOG_PID | LOG_CONS, LOG_LOCAL7);
+	//openmylog("dongle-app", LOG_PID | LOG_CONS, LOG_LOCAL7);
+	CLogger::get_instance().set_file_name(LOG_INFO_FILE_PATH, LOG_WARNING_FILE_PATH);
+	CLogger::get_instance().start();
 
-	log_debug("\r\n\r\n");
-	log_debug("/*******************************/");
-	log_debug("dongle main-process start\n");
+	log_info("\r\n\r\n");
+	log_info("/*******************************/");
+	log_info("dongle main-process start\n");
 
 	CHotplug netlink_server;
 	//CStartDongleAndSound m_startdongle;
@@ -126,7 +130,7 @@ int main(int argc, char** argv)
 	//m_startdongle.start(dev_path);
 
 
-	log_debug("argv[1]:%s\n", argv[1]);
+	log_info("argv[1]:%s\n", argv[1]);
 	auto file_fd = open(argv[1], O_RDONLY);
 	if (file_fd < 0)
 	{
@@ -145,7 +149,7 @@ int main(int argc, char** argv)
 	//auto nread = read(file_fd, pBuffer, file_length);
 	if (nread == file_length)
 	{
-		log_debug("get file_fd file success\r\n");
+		log_info("get file_fd file success\r\n");
 	}
 	else
 	{
@@ -159,7 +163,7 @@ int main(int argc, char** argv)
 	{
 		if (exit_flag != 0)
 		{
-			log_debug("...closing threads...\r\n");
+			log_info("...closing threads...\r\n");
 			netlink_server.monitor_stop();
 			delete[] pBuffer;
 			pBuffer = nullptr;
@@ -171,10 +175,11 @@ int main(int argc, char** argv)
 		else
 		{
 			usleep(900 * 1000);
-			//log_debug("...main-process wating...\r\n");
+			//log_info("...main-process wating...\r\n");
 		}
 	}
-	log_debug("exit main-process...\r\n");
-	closemylog();
+	log_info("exit main-process...\r\n");
+	CLogger::get_instance().stop();
+	//closemylog();
 	return 0;
 }

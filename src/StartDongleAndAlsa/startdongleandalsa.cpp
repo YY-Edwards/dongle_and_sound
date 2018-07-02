@@ -10,7 +10,7 @@ CStartDongleAndSound::CStartDongleAndSound()
 	next = 0;
 	timer_start_flag = false;
 	dongle_map.clear();
-	log_debug("New: CStartDongleAndSound\n");
+	log_info("New: CStartDongleAndSound\n");
 }
 
 CStartDongleAndSound::~CStartDongleAndSound()
@@ -26,7 +26,7 @@ CStartDongleAndSound::~CStartDongleAndSound()
 		m_new_dongle_ptr = nullptr;
 	}
 
-	log_debug("Destory: CStartDongleAndSound\n");
+	log_info("Destory: CStartDongleAndSound\n");
 }
 
 bool CStartDongleAndSound::start(const char *lpszDevice, const char *pcm_name)
@@ -44,7 +44,7 @@ bool CStartDongleAndSound::start(const char *lpszDevice, const char *pcm_name)
 			log_warning("open dongle failure!\n");
 			return false;
 		}
-		log_debug("open a new dongle okay\n");
+		log_info("open a new dongle okay\n");
 		m_new_dongle_ptr->send_dongle_initialization();
 
 		timer();
@@ -80,7 +80,7 @@ void CStartDongleAndSound::stop()
 			delete it->second;
 			it->second = nullptr;
 		}
-		log_debug("stop dongle:%s\n", it->first);
+		log_info("stop dongle:%s\n", it->first);
 		dongle_map.erase(it);
 
 	}
@@ -103,7 +103,7 @@ void CStartDongleAndSound::stop(const char *device)//stop one dongle
 			it->second = nullptr;
 		}
 		dongle_map.erase(it);
-		log_debug("stop dongle:%s\n", device);
+		log_info("stop dongle:%s\n", device);
 	}
 	else
 	{
@@ -155,7 +155,7 @@ void CStartDongleAndSound::timer()//用来定时(20ms)触发串口读，写数据，并将CSeria
 	}
 
 	timer_start_flag = true;
-	log_debug("create timer okay.\n");
+	log_info("create timer okay.\n");
 
 }
 
@@ -199,10 +199,10 @@ void timer_routine(union sigval v)
 //			&& (temp_ptr->id_driver.compare(compare_id_driver) == 0)
 //			)
 //		{
-//			log_debug("find the dongle device\n");
-//			log_debug("action:%s\n", temp_ptr->action.c_str());
-//			log_debug("devpath:%s\n", temp_ptr->path.c_str());
-//			log_debug("devname:%s\n", temp_ptr->devname.c_str());
+//			log_info("find the dongle device\n");
+//			log_info("action:%s\n", temp_ptr->action.c_str());
+//			log_info("devpath:%s\n", temp_ptr->path.c_str());
+//			log_info("devname:%s\n", temp_ptr->devname.c_str());
 //			if (temp_ptr->action.compare(action_add) == 0)
 //			{
 //				start(temp_ptr->devname.c_str());
@@ -244,7 +244,7 @@ void timer_routine(union sigval v)
 //	if (nread == file_length)
 //	{
 //		cache_nbytes = nread;
-//		log_debug("get voice file success\r\n");
+//		log_info("get voice file success\r\n");
 //	}
 //	else
 //	{

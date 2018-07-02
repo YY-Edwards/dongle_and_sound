@@ -32,11 +32,16 @@
 #include <stdint.h>
 #include <map>
 using namespace std;
-#include "log.h"
+//#include "log.h"
+#include "logger.h"
+
+
 
 
 
 #define SELECT_TIMEOUT							5       //selectµÄtimeout seconds
+#define	LOG_INFO_FILE_PATH					"/opt/log/dong_app_info.log"
+#define	LOG_WARNING_FILE_PATH				"/opt/log/dong_app_warning.log"
 
 #ifdef WIN32
 typedef  CRITICAL_SECTION GOCRITICAL_SECTION;

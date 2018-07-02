@@ -19,9 +19,9 @@
 #include <list>
 
 
-#define LogInfo(...)	CLogger::get_instance().AddToQueue("INFO", __FILE__, __LINE__, __PRETTY_FUNCTION__, __VA_ARGS__)
-#define LogWarning(...) CLogger::get_instance().AddToQueue("WARNING", __FILE__, __LINE__, __PRETTY_FUNCTION__, __VA_ARGS__)
-#define LogError(...)	CLogger::get_instance().AddToQueue("ERROR", __FILE__, __LINE__, __PRETTY_FUNCTION__, __VA_ARGS__)
+#define log_info(...)	CLogger::get_instance().add_to_queue("INFO", __FILE__, __LINE__, __PRETTY_FUNCTION__, __VA_ARGS__)
+#define log_warning(...) CLogger::get_instance().add_to_queue("WARNING", __FILE__, __LINE__, __PRETTY_FUNCTION__, __VA_ARGS__)
+#define log_error(...)	CLogger::get_instance().add_to_queue("ERROR", __FILE__, __LINE__, __PRETTY_FUNCTION__, __VA_ARGS__)
 
 class CLogger
 {
@@ -73,4 +73,4 @@ private:
 
 
 
-#endif __LOGGER_H__
+#endif //__LOGGER_H__

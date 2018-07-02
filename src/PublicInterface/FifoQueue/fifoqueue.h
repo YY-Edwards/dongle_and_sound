@@ -16,7 +16,7 @@
 #include <queue>
 #include <stdint.h>
 #include "syninterface.h"
-#include "log.h"
+//#include "log.h"
 
 #define FIFODEEP  30
 #define DATADEEP  1500
