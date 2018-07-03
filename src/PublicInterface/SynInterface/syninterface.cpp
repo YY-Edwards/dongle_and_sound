@@ -172,8 +172,10 @@ int MySynSem::SemWait(int waittime)
 		timeraddMS(&now, waittime);//ms¼¶±ð
 		outtime.tv_sec = now.tv_sec;
 		outtime.tv_nsec = now.tv_usec * 1000;
-		while ((ret = sem_timedwait(&m_sem, &outtime)) != 0 && errno == EINTR)
+	
+		while (((ret = sem_timedwait(&m_sem, &outtime)) !=0) && (errno == EINTR))
 			continue;
+		
 	}
 	else
 	{

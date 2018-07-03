@@ -93,7 +93,6 @@ CHotplug::~CHotplug()
 		event_queue_ptr = nullptr;
 	}
 	log_info("Destory: CHotplug \n");
-
 }
 
 void CHotplug::SocketClose(HSocket &handle)
@@ -152,7 +151,7 @@ int CHotplug::init_netlink_socket(bool bForceClose)
 	//设置为非阻塞模式
 	SocketBlock(s_netlink_client, 0);
 	
-	log_info("socket_fd: %d\n", s_netlink_client);
+	log_info("netlink socket_fd: %d\n", s_netlink_client);
 
 
 	return 0;
@@ -294,7 +293,6 @@ int CHotplug::EventParseThreadFunc()
 	}
 
 	log_info("exit EventParseThreadFunc: 0x%x \n", event_parse_thread_p->GetPthreadID());
-
 	return return_value;
 
 }
@@ -501,6 +499,7 @@ void CHotplug::monitor_stop(void)
 		hotplug_monitor_thread_p = nullptr;
 	}
 
+
 	if (event_parse_thread_p != nullptr)
 	{
 		queue_sem.SemPost();
@@ -508,19 +507,20 @@ void CHotplug::monitor_stop(void)
 		event_parse_thread_p = nullptr;
 	}
 
+
 	if ((event_queue_ptr->QueueIsEmpty()) != true)
 	{
 		event_queue_ptr->ClearQueue();
 	}
 
-	int ret = 0;
-	do
-	{
-		ret = queue_sem.SemWait(20);
-		if (ret = -1)break;
+	//int ret = 0;
+	//do
+	//{
+	//	ret = queue_sem.SemWait(20);
+	//	if (ret == -1)break;
 
-	} while (0 != ret);
-		
+	//} while (0 == ret);
+	//	
 
 
 }
