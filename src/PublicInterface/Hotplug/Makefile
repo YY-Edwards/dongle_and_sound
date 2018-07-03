@@ -7,9 +7,10 @@ INC += \
 -I $(OBJSDIR)/../src/PublicInterface/SynInterface \
 -I $(OBJSDIR)/../src/PublicInterface/SocketWrap \
 -I $(OBJSDIR)/../src/PublicInterface/FifoQueue \
+-I $(OBJSDIR)/../src/PublicInterface/Logger \
 -I /usr/include/
 
-CXXFLAGS += -g -lpthread -lrt -Wl,--as-needed -std=c++11
+CXXFLAGS +=  -std=c++11
 
 #所有的.c文件
 CC_FILES = $(wildcard *.c)

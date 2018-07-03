@@ -5,13 +5,14 @@ CXX = g++
 #需要的头文件路径
 INC += \
 -I $(OBJSDIR)/../src/PublicInterface/FifoQueue \
+-I $(OBJSDIR)/../src/PublicInterface/Logger \
 -I $(OBJSDIR)/../src/PublicInterface/SynInterface \
 -I $(OBJSDIR)/../src/StartDongleAndAlsa/SerialDongle/Usart \
 -I $(OBJSDIR)/../src \
 -I /usr/include/
 
 
-CXXFLAGS += -g -lpthread -lrt -Wl,--as-needed -std=c++11
+CXXFLAGS +=  -std=c++11
 
 #所有的.c文件
 CC_FILES = $(wildcard *.c)

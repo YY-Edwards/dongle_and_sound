@@ -42,7 +42,8 @@ public:
 					const char* psz_file,
 					int line_no,
 					const char* psz_funcsig,
-					char* psz_fmt, ...);
+					std::string psz_fmt, ...);
+					//char* psz_fmt, ...);
 	
 private:
 	CLogger() = default;//显示声明使用默认构造函数

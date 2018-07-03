@@ -1,6 +1,6 @@
 CXX = g++
 CC = gcc
-CXXFLAGS += -g -Wall -O2 -lpthread -lrt -Wl,--as-needed -std=c++11
+CXXFLAGS += -g -Wall -O2 -lpthread -pthread -lrt -Wl,--as-needed -std=c++11
 TARGET = dongle_app
 export OBJSDIR = $(shell pwd)/objs
 export ASDF = $(shell pwd)/bina

@@ -6,7 +6,7 @@ INC += \
 -I /usr/include/ \
 -I /usr/local/include/
 
-CXXFLAGS += -g -pthread -lrt -Wl,--as-needed -std=c++11
+CXXFLAGS +=  -std=c++11
 
 #所有的.c文件
 CC_FILES = $(wildcard *.c)

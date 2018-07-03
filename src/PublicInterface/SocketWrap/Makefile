@@ -6,7 +6,10 @@ CXX = g++
 #需要的头文件路径
 INC += \
 -I $(OBJSDIR)/../src \
+-I $(OBJSDIR)/../src/PublicInterface/Logger \
 -I /usr/include/
+
+CXXFLAGS +=  -std=c++11 
 
 #所有的.c文件
 CC_FILES = $(wildcard *.c)
@@ -19,9 +22,9 @@ CXX_OBJS = $(patsubst %.cpp, %.o, $(CXX_FILES))
 
 all:$(CC_OBJS) $(CXX_OBJS)
 $(CC_OBJS):%.o:%.c
-	$(CC) -c $< -o $(OBJSDIR)/$@  $(INC) 
+	$(CC) -c $< -o $(OBJSDIR)/$@  $(INC) $(CCFLAGS)
 $(CXX_OBJS):%.o:%.cpp
-	$(CXX) -c $< -o $(OBJSDIR)/$@  $(INC) 
+	$(CXX) -c $< -o $(OBJSDIR)/$@  $(INC)  $(CXXFLAGS)
 clean:
 	$(RM) $(CC_OBJS)
 	$(RM) $(CXX_OBJS)

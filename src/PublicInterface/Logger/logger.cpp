@@ -115,22 +115,23 @@ void CLogger::add_to_queue(const char* psz_level,
 	const char* psz_file,
 	int line_no,
 	const char* psz_funcsig,
-	char* psz_fmt, ...)
+	std::string psz_fmt, ...)
+	//char* psz_fmt, ...)
 {
 
-	char msg[256] = { 0 };
+	char msg[1024] = { 0 };
 	//C语言中解决变参问题的一组宏,所在头文件：#include <stdarg.h>,用于获取不确定个数的参数 
 	va_list vArgList;
 
 	//对va_list变量进行初始化，将vArgList指针指向参数列表中的第一个参数
-	va_start(vArgList, psz_fmt);
+	va_start(vArgList, psz_fmt.c_str());
 
 	//将vArgList(通常是字符串) 按format格式写入字符串string中
-	vsnprintf(msg, 256, psz_fmt, vArgList);
+	vsnprintf(msg, 1024, psz_fmt.c_str(), vArgList);
 	//回收vArgList指针
 	va_end(vArgList);
 
-	char content[1024] = { 0 };
+	char content[1536] = { 0 };
 	time_t temp_now = time(NULL);
 	struct tm t;
 	localtime_r(&temp_now, &(t));//拷贝数据并贴上时间戳
