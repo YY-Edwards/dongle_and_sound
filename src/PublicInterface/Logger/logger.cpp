@@ -61,8 +61,8 @@ bool CLogger::start()
 	}
 
 	
-	info_fp_ = fopen(info_filename_.c_str(), "wt+");
-	warning_fp_ = fopen(warning_filename_.c_str(), "wt+");
+	info_fp_ = fopen(info_filename_.c_str(), "at+");
+	warning_fp_ = fopen(warning_filename_.c_str(), "at+");
 	if (warning_fp_ == NULL || info_fp_ == NULL)
 	{
 		return false;

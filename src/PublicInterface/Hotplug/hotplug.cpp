@@ -250,7 +250,7 @@ int CHotplug::HotplugMonitorThreadFunc()
 
 	}
 
-	log_info("exit HotplugMonitorThreadFunc: 0x%x\r\n", hotplug_monitor_thread_p->GetPthreadID());
+	log_info("exit HotplugMonitorThreadFunc: 0x%x \n", hotplug_monitor_thread_p->GetPthreadID());
 
 	return return_value;
 
@@ -293,7 +293,7 @@ int CHotplug::EventParseThreadFunc()
 
 	}
 
-	log_info("exit EventParseThreadFunc: 0x%x\r\n", event_parse_thread_p->GetPthreadID());
+	log_info("exit EventParseThreadFunc: 0x%x \n", event_parse_thread_p->GetPthreadID());
 
 	return return_value;
 

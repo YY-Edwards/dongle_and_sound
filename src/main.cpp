@@ -103,20 +103,20 @@ static void extract_hotplug_info_func(hotplug_info_t *hpug_ptr)
 
 int main(int argc, char** argv)
 {
+
+	//openmylog("dongle-app", LOG_PID | LOG_CONS, LOG_LOCAL7);
+	CLogger::get_instance().set_file_name(LOG_INFO_FILE_PATH, LOG_WARNING_FILE_PATH);
+	CLogger::get_instance().start();
+
+	log_info("/*******************************/\n");
+	log_info("dongle main-process start\n");
+
 	// Setup signal handler: quit on Ctrl-C
 	signal(SIGTERM, signal_handler);
 	signal(SIGINT, signal_handler);
 #ifndef _WIN32
 	signal(SIGCHLD, signal_handler);
 #endif
-
-	//openmylog("dongle-app", LOG_PID | LOG_CONS, LOG_LOCAL7);
-	CLogger::get_instance().set_file_name(LOG_INFO_FILE_PATH, LOG_WARNING_FILE_PATH);
-	CLogger::get_instance().start();
-
-	log_info("\r\n\r\n");
-	log_info("/*******************************/");
-	log_info("dongle main-process start\n");
 
 	CHotplug netlink_server;
 	//CStartDongleAndSound m_startdongle;
@@ -139,6 +139,8 @@ int main(int argc, char** argv)
 		netlink_server.monitor_stop();
 		delete m_startdongle;
 		m_startdongle = nullptr;
+		sleep(1);
+		CLogger::get_instance().stop();
 		return -1;
 	}
 	auto file_length = lseek(file_fd, 0 , SEEK_END);
@@ -179,6 +181,7 @@ int main(int argc, char** argv)
 		}
 	}
 	log_info("exit main-process...\r\n");
+	sleep(1);
 	CLogger::get_instance().stop();
 	//closemylog();
 	return 0;
