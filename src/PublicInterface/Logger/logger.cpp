@@ -11,9 +11,49 @@
   
   #include "logger.h"
   #include <time.h>
-  #include <stdio.h>
-  #include <memory>
   #include <stdarg.h>
+
+
+
+#ifndef USE_STD_C_11
+
+CLogger::CLogger()
+{
+
+#ifdef WIN32
+	sem_ = CreateSemaphore(NULL, 0, 200, NULL);	
+	mutex_ = CreateMutex(NULL, FALSE, (LPCTSTR)"mutex");
+
+
+#else
+
+	sem_init(&sem_, 0, 0);
+	pthread_mutex_init(&mutex_, NULL);
+
+#endif
+
+
+}
+
+
+CLogger::~CLogger()
+{
+
+#ifdef WIN32
+
+	CloseHandle(sem_);
+	CloseHandle(mutex_);
+#else
+
+	sem_destroy(&sem_);
+	pthread_mutex_destroy(&mutex_);
+
+#endif	
+
+}
+
+#endif
+
 
 void CLogger::set_file_name(const char* info_filename, const char* warning_filename)
 {
@@ -69,7 +109,7 @@ bool CLogger::start()
 	}
 	else
 	{
-		auto ret = fseek(info_fp_, 0, SEEK_END);
+		int ret = fseek(info_fp_, 0, SEEK_END);
 		ret = fseek(warning_fp_, 0, SEEK_END);
 		if (ret != 0)
 			return false;
@@ -93,7 +133,36 @@ bool CLogger::start()
 		
 		//创建线程
 		exit_flag_ = false;
+
+#ifdef USE_STD_C_11
+
 		s_pthread_.reset(new std::thread(std::bind(&CLogger::threadfunc, this)));
+
+#else
+
+#ifdef WIN32
+
+
+		s_pthread_ = (HANDLE)_beginthreadex(NULL, 0, (unsigned int(__stdcall*)(void *))log_thread, this, 0, NULL);
+		if (s_pthread_ == NULL)
+		{
+			std::cout << "create thread failed" << std::endl;
+		}
+
+
+#else
+
+
+		int err = 0;
+		err = pthread_create(&s_pthread_, NULL, log_thread, this);
+		if (err != 0){
+			fprintf(stderr, "threadfunc create fail...\n");
+		}
+
+#endif
+
+
+#endif
 		return true;
 	}
 
@@ -103,9 +172,41 @@ void CLogger::stop()
 {
 
 	exit_flag_ = true;
-	cv_.notify_one();
 
+#ifdef USE_STD_C_11
+
+	cv_.notify_one();
 	s_pthread_->join();
+
+#else
+
+	if (s_pthread_ != NULL)
+	{
+
+
+#ifdef WIN32
+
+		ReleaseSemaphore(sem_, 1, NULL);//触发信号量
+		WaitForSingleObject(s_pthread_, INFINITE);
+		CloseHandle(s_pthread_);
+		//CloseHandle(mutex_);
+
+
+#else
+
+		sem_post(&sem_);
+		pthread_join(s_pthread_, NULL);//等待回收线程
+		s_pthread_ = 0;
+		//pthread_mutex_destroy(&mutex_);
+
+#endif
+
+	}
+
+	
+
+#endif
+
 	fclose(info_fp_);
 	fclose(warning_fp_);
 
@@ -150,15 +251,43 @@ void CLogger::add_to_queue(const char* psz_level,
 		psz_funcsig,
 		msg);
 
+#ifdef USE_STD_C_11
+
 	{
 		std::lock_guard<std::mutex> guard(mutex_);
 		queue_.emplace_back(psz_level, content);//C++11中效率比push_back更高
 	
 	}
 
-
-
 	cv_.notify_one();
+
+#else
+
+#ifdef WIN32
+
+	WaitForSingleObject(mutex_, INFINITE);
+
+	queue_.push_back(psz_level, content);
+
+	ReleaseMutex(mutex_);
+
+	ReleaseSemaphore(sem_, 1, NULL);//触发信号量
+	
+#else//linux
+
+	pthread_mutex_lock(&mutex_);
+
+	queue_.push_back(psz_level, content);
+
+	pthread_mutex_unlock(&mutex_);
+
+	sem_post(&sem_);
+
+#endif
+
+
+
+#endif 
 
 }
 
@@ -169,6 +298,9 @@ void CLogger::threadfunc()
 
 	while (!exit_flag_)
 	{
+
+#ifdef USE_STD_C_11
+
 		std::unique_lock<std::mutex> guard(mutex_);
 		while (queue_.empty())
 		{
@@ -177,7 +309,7 @@ void CLogger::threadfunc()
 			cv_.wait(guard);
 
 		}
-	
+
 		const std::string &msg_str = queue_.front().second;
 		const std::string &level_str = queue_.front().first;
 		if (level_str.compare("WARNING") == 0)
@@ -188,6 +320,68 @@ void CLogger::threadfunc()
 		fwrite((void*)msg_str.c_str(), msg_str.length(), 1, info_fp_);
 		fflush(info_fp_);//提高写入效率
 		queue_.pop_front();
+#else
+#ifdef WIN32
+
+		int ret = 0;
+
+		ret = WaitForSingleObject(sem_, INFINITE);//等待信号量触发
+		if ((ret == WAIT_ABANDONED) || (ret == WAIT_FAILED))
+		{
+			return;
+		}
+
+		WaitForSingleObject(mutex_, INFINITE);
+
+		if (queue_.empty() || exit_flag_)
+		{
+			ReleaseMutex(mutex_);
+			return;
+		}
+
+		const std::string &msg_str = queue_.front().second;
+		const std::string &level_str = queue_.front().first;
+		if (level_str.compare("WARNING") == 0)
+		{
+			fwrite((void*)msg_str.c_str(), msg_str.length(), 1, warning_fp_);
+			fflush(warning_fp_);//提高写入效率
+		}
+		fwrite((void*)msg_str.c_str(), msg_str.length(), 1, info_fp_);
+		fflush(info_fp_);//提高写入效率
+		queue_.pop_front();
+
+		ReleaseMutex(mutex_);
+
+#else
+
+
+		sem_wait(&sem_);
+
+		pthread_mutex_lock(&mutex_);
+
+		if (queue_.empty() || exit_flag_)//为空，则异常或者线程退出标志使能
+		{	
+			pthread_mutex_unlock(&mutex_);
+			return;
+		}
+
+		const std::string &msg_str = queue_.front().second;
+		const std::string &level_str = queue_.front().first;
+		if (level_str.compare("WARNING") == 0)
+		{
+			fwrite((void*)msg_str.c_str(), msg_str.length(), 1, warning_fp_);
+			fflush(warning_fp_);//提高写入效率
+		}
+		fwrite((void*)msg_str.c_str(), msg_str.length(), 1, info_fp_);
+		fflush(info_fp_);//提高写入效率
+		queue_.pop_front();
+
+		pthread_mutex_unlock(&mutex_);
+
+#endif
+
+#endif
+	
 
 	}
 }

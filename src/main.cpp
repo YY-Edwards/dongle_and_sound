@@ -166,6 +166,7 @@ int main(int argc, char** argv)
 		if (exit_flag != 0)
 		{
 			log_info("...closing threads...\r\n");
+			close(file_fd);
 			netlink_server.monitor_stop();
 			delete[] pBuffer;
 			pBuffer = nullptr;
