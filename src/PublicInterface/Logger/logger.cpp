@@ -180,10 +180,6 @@ void CLogger::stop()
 
 #else
 
-	if (s_pthread_ != NULL)
-	{
-
-
 #ifdef WIN32
 
 		ReleaseSemaphore(sem_, 1, NULL);//触发信号量
@@ -200,8 +196,6 @@ void CLogger::stop()
 		//pthread_mutex_destroy(&mutex_);
 
 #endif
-
-	}
 
 	
 
@@ -236,6 +230,7 @@ void CLogger::add_to_queue(const char* psz_level,
 	time_t temp_now = time(NULL);
 	struct tm t;
 	localtime_r(&temp_now, &(t));//拷贝数据并贴上时间戳
+
 	sprintf(content,
 		"[%04d-%02d-%02d %02d:%02d:%02d][%s][0x%04x][%s:%d %s]: %s\n",
 		t.tm_year + 1900,
@@ -245,7 +240,16 @@ void CLogger::add_to_queue(const char* psz_level,
 		t.tm_min,
 		t.tm_sec,
 		psz_level,
+
+#ifdef USE_STD_C_11
 		std::this_thread::get_id(),
+#else
+#ifdef WIN32
+		GetCurrentThreadId(),
+#else
+		pthread_self(),
+#endif
+#endif
 		psz_file,
 		line_no,
 		psz_funcsig,
@@ -267,7 +271,7 @@ void CLogger::add_to_queue(const char* psz_level,
 
 	WaitForSingleObject(mutex_, INFINITE);
 
-	queue_.push_back(psz_level, content);
+	queue_.emplace_back(psz_level, content);
 
 	ReleaseMutex(mutex_);
 
@@ -277,7 +281,7 @@ void CLogger::add_to_queue(const char* psz_level,
 
 	pthread_mutex_lock(&mutex_);
 
-	queue_.push_back(psz_level, content);
+	queue_.emplace_back(psz_level, content);
 
 	pthread_mutex_unlock(&mutex_);
 
@@ -290,6 +294,21 @@ void CLogger::add_to_queue(const char* psz_level,
 #endif 
 
 }
+
+#ifdef USE_STD_C_11
+
+#else
+void *CLogger::log_thread(void * p)
+{
+	CLogger *arg = (CLogger*)p;
+	if (arg != NULL)
+	{
+		 arg->threadfunc();
+	}
+	return (void*)0;
+	
+}
+#endif
 
 void CLogger::threadfunc()
 {
