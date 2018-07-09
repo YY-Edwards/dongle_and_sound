@@ -17,7 +17,7 @@ INC += \
 -I /usr/include/
 
 
-CXXFLAGS +=  -std=c++11
+CXXFLAGS +=  -std=c++11 -g
 
 #所有的.c文件
 CC_FILES = $(wildcard *.c)

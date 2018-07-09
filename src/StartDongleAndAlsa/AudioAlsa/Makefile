@@ -7,6 +7,8 @@ INC += \
 -I $(OBJSDIR)/../src \
 -I /usr/include/
 
+CXXFLAGS +=  -std=c++11 -g
+
 
 #所有的.c文件
 CC_FILES = $(wildcard *.c)
@@ -21,7 +23,7 @@ all:$(CC_OBJS) $(CXX_OBJS)
 $(CC_OBJS):%.o:%.c
 	$(CC) -c $< -o $(OBJSDIR)/$@ $(INC)  
 $(CXX_OBJS):%.o:%.cpp
-	$(CXX) -c $< -o $(OBJSDIR)/$@  $(INC)  
+	$(CXX) -c $< -o $(OBJSDIR)/$@  $(INC)  $(CXXFLAGS) 
 clean:
 	$(RM) $(CC_OBJS)
 	$(RM) $(CXX_OBJS)
