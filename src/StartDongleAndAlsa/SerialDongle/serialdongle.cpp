@@ -526,7 +526,7 @@ int CSerialDongle::SerialTxThreadFunc()
 
 				if (fWaitingOnWrite){//Previous write did not complete.
 					//Try some errorrecovery.
-					log_warning("Previous write did not complete!!!\n");
+					log_warning("%s:Previous write did not complete!!!\n", dongle_name.c_str());
 					purge_dongle(m_wComm, TCOFLUSH);//刷新写入的数据
 					fWaitingOnWrite = false;
 					fWaitingOnPCM = false;
@@ -540,7 +540,7 @@ int CSerialDongle::SerialTxThreadFunc()
 				if (snapAMBEBufHead != m_AMBEBufTail){  //AMBE to send
 					fWaitingOnAMBE = true;
 					fWaitingOnWrite = true;
-					log_info("dongle send ambe buff:\n");
+					log_info("%s send ambe buff:\n", dongle_name.c_str());
 					aio_write_file(&w_cbp, m_wComm, &(m_AMBE_CirBuff[m_AMBEBufTail].All[0]), AMBE3000_AMBE_BYTESINFRAME);
 					//m_usartwrap.send(&(m_AMBE_CirBuff[m_AMBEBufTail].All[0]), AMBE3000_AMBE_BYTESINFRAME);
 				}

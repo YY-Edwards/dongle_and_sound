@@ -109,6 +109,8 @@ static void extract_hotplug_info_func(hotplug_info_t *hpug_ptr)
 		sleep(2);
 		log_info("Four dongle has prepared... \n");
 		m_startdongle->read_voice_file(pBuffer, nread);
+		sleep(2);
+		m_startdongle->run_timer();
 	}
 
 }

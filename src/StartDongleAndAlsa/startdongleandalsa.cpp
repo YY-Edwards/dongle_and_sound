@@ -65,7 +65,7 @@ bool CStartDongleAndSound::start(const char *lpszDevice, const char *pcm_name)
 		log_info("open a new dongle okay\n");
 		m_new_dongle_ptr->send_dongle_initialization();
 
-		timer();
+		//timer();
 	}
 
 
@@ -130,6 +130,13 @@ void CStartDongleAndSound::stop(const char *device)//stop one dongle
 
 }
 
+void CStartDongleAndSound::run_timer()
+{
+
+	timer();
+
+}
+
 void CStartDongleAndSound::timer()//用来定时(20ms)触发串口读，写数据，并将CSerialDongle对象句柄传入定时器信号处理函数中
 {
 	// XXX int timer_create(clockid_t clockid, struct sigevent *evp, timer_t *timerid);  
@@ -141,7 +148,8 @@ void CStartDongleAndSound::timer()//用来定时(20ms)触发串口读，写数据，并将CSeria
 	struct sigevent evp;
 	memset(&evp, 0, sizeof(struct sigevent));   //清零初始化  
 
-	evp.sigev_value.sival_ptr = m_new_dongle_ptr;        //也是标识定时器的，这和timerid有什么区别？回调函数可以获得  
+	evp.sigev_value.sival_ptr = &dongle_map;
+	//evp.sigev_value.sival_ptr = m_new_dongle_ptr;        //也是标识定时器的，这和timerid有什么区别？回调函数可以获得  
 	//evp.sigev_value.sival_ptr = &m_serialdongle;        //也是标识定时器的，这和timerid有什么区别？回调函数可以获得  
 	evp.sigev_notify = SIGEV_THREAD;        //线程通知的方式，派驻新线程  
 	evp.sigev_notify_function = timer_routine;   //线程函数地址  
@@ -204,10 +212,23 @@ void CStartDongleAndSound::read_voice_file(char* pBuffer, int len)
 
 void timer_routine(union sigval v)
 {
-	CSerialDongle *ptr = (CSerialDongle*)v.sival_ptr;
+	//CSerialDongle *ptr = (CSerialDongle*)v.sival_ptr;
+	/*ptr->send_any_ambe_to_dongle();
+	ptr->get_read_dongle_data();*/
 	
-	ptr->send_any_ambe_to_dongle();
-	ptr->get_read_dongle_data();
+	map<const char *, CSerialDongle *, cmp_str> *ptr = (map<const char *, CSerialDongle *> *)v.sival_ptr;
+	static map<const char *, CSerialDongle *, cmp_str>::iterator it = ptr->begin();
+
+	it->second->send_any_ambe_to_dongle();
+	it->second->get_read_dongle_data();
+	it++;
+	if (it == ptr->end())//循环
+	{
+		it = ptr->begin();
+	}
+
+	
+
 }
 
 void CStartDongleAndSound::dongle_ondata_func(void *ptr, short ptr_len)

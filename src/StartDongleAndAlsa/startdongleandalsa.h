@@ -6,6 +6,13 @@
 #include "audioalsa.h"
 #include <time.h>  
 
+struct cmp_str//需要重写比较方式，不然STL内置比较的是指针而不是字符串。
+{
+	bool operator()(char const *a, char const *b)
+	{
+		return ::strcmp(a, b) < 0;
+	}
+};
 
 class CStartDongleAndSound
 {
@@ -17,6 +24,7 @@ public:
 	void stop();//stop tatol dongle and alsa
 	void stop(const char *);//stop one dongle
 	void read_voice_file(char* pBuffer, int len);
+	void run_timer();
 	//void get_voice_cache_from_file(const char* file_name);
 
 public:
@@ -39,13 +47,13 @@ private:
 	//CSerialDongle m_serialdongle;
 	CSerialDongle *m_new_dongle_ptr;
 
-	struct cmp_str//需要重写比较方式，不然STL内置比较的是指针而不是字符串。
-	{
-		bool operator()(char const *a, char const *b)
-		{
-			return ::strcmp(a, b) < 0;
-		}
-	};
+	//struct cmp_str//需要重写比较方式，不然STL内置比较的是指针而不是字符串。
+	//{
+	//	bool operator()(char const *a, char const *b)
+	//	{
+	//		return ::strcmp(a, b) < 0;
+	//	}
+	//};
 	map<const char *, CSerialDongle *, cmp_str> dongle_map;
 
 };
