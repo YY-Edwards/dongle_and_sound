@@ -628,7 +628,7 @@ void CSerialDongle::aio_write_completion_hander(int signo, siginfo_t *info, void
 			case 0://success
 
 					ret = aio_return(req);
-					log_info("[%s aio_write :%d bytes.]\n", dongle_name.c_str(), ret);
+					log_info("[%s aio_write :%d bytes.]\n", pThis->dongle_name.c_str(), ret);
 					nwrited += ret;
 					if (nwrited == AMBE3000_AMBE_BYTESINFRAME || nwrited == AMBE3000_PCM_BYTESINFRAME)
 					{
@@ -1030,7 +1030,7 @@ uint8_t * CSerialDongle::read_dongle_data()
 	}
 	else
 	{
-		log_warning("aio_read underrun!\n");
+		//log_warning("aio_read underrun!\n");
 		return NULL;
 	}
 
