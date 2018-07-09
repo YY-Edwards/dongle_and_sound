@@ -11,7 +11,7 @@
 #ifndef __LOGGER_H__
 #define __LOGGER_H__
 
-//#define USE_STD_C_11 //是否启用C++11标准
+#define USE_STD_C_11 //是否启用C++11标准
 
 #include <string>
 #include <list>

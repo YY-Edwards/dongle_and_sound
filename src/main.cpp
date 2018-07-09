@@ -22,6 +22,8 @@
 
 using namespace std;
 
+int dongle_count = 0;
+
 int exit_flag = 0;
 char *pBuffer = nullptr;
 int nread = 0;
@@ -76,15 +78,21 @@ static void extract_hotplug_info_func(hotplug_info_t *hpug_ptr)
 			if (m_startdongle != nullptr)
 			{
 				m_startdongle->start(temp_ptr->devname.c_str());
+				dongle_count++;
 				//sleep(30);
-				m_startdongle->read_voice_file(pBuffer, nread); 
+				//m_startdongle->read_voice_file(pBuffer, nread); 
 			}
 	
 		}
 		else if (temp_ptr->action.compare(action_remove) == 0)
 		{
-			if (m_startdongle!=nullptr)
+			if (m_startdongle != nullptr){
+
 				m_startdongle->stop(temp_ptr->devname.c_str());
+				dongle_count--;
+			}
+
+
 		}
 		else if (temp_ptr->action.compare(action_change) == 0)
 		{
@@ -96,7 +104,12 @@ static void extract_hotplug_info_func(hotplug_info_t *hpug_ptr)
 	{
 		log_warning("find no dongle!\n");
 	}
-
+	if (dongle_count == 4)
+	{
+		sleep(2);
+		log_info("Four dongle has prepared... \n");
+		m_startdongle->read_voice_file(pBuffer, nread);
+	}
 
 }
 
@@ -168,11 +181,11 @@ int main(int argc, char** argv)
 			log_info("...closing threads...\r\n");
 			close(file_fd);
 			netlink_server.monitor_stop();
-			delete[] pBuffer;
-			pBuffer = nullptr;
 			m_startdongle->stop();
 			delete m_startdongle;
 			m_startdongle = nullptr;
+			delete[] pBuffer;
+			pBuffer = nullptr;
 			break;
 		}
 		else

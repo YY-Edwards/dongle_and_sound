@@ -10,6 +10,23 @@ CStartDongleAndSound::CStartDongleAndSound()
 	next = 0;
 	timer_start_flag = false;
 	dongle_map.clear();
+
+	pcm_voice_fd = open("/opt/pcm.data", O_RDWR | O_APPEND | O_CREAT);
+	if (pcm_voice_fd < 0)
+	{
+		log_warning("pcm_voice_fd open error\r\n");
+		close(pcm_voice_fd);
+		//return;
+	}
+	else
+	{
+		/* 清空文件 */
+		ftruncate(pcm_voice_fd, 0);
+
+		/* 重新设置文件偏移量 */
+		lseek(pcm_voice_fd, 0, SEEK_SET);
+	}
+
 	log_info("New: CStartDongleAndSound\n");
 }
 
@@ -44,6 +61,7 @@ bool CStartDongleAndSound::start(const char *lpszDevice, const char *pcm_name)
 			log_warning("open dongle failure!\n");
 			return false;
 		}
+		m_new_dongle_ptr->SetDongleRxDataCallBack(dongle_ondata_func);
 		log_info("open a new dongle okay\n");
 		m_new_dongle_ptr->send_dongle_initialization();
 
@@ -161,8 +179,25 @@ void CStartDongleAndSound::timer()//用来定时(20ms)触发串口读，写数据，并将CSeria
 
 void CStartDongleAndSound::read_voice_file(char* pBuffer, int len)
 {
-	if (m_new_dongle_ptr != nullptr)
-		m_new_dongle_ptr->extract_voice(pBuffer, len);
+	int AMBE_fragment_bits = 7;
+	int q_len = len / AMBE_fragment_bits;
+	int index = 0;
+	map<const char *, CSerialDongle *, cmp_str>::iterator it;
+	for (it = dongle_map.begin(); it != dongle_map.end();)
+	{
+		it->second->extract_voice((pBuffer + index), AMBE_fragment_bits);
+		index += AMBE_fragment_bits;
+		if (index >= len)break;
+		it++;
+		if (it == dongle_map.end())//循环
+		{
+			it = dongle_map.begin();
+		}
+	}
+
+	log_info("extract voice data over. \n");
+	/*if (m_new_dongle_ptr != nullptr)
+		m_new_dongle_ptr->extract_voice(pBuffer, len);*/
 
 	//m_serialdongle.extract_voice(pBuffer, len);
 }
@@ -173,6 +208,28 @@ void timer_routine(union sigval v)
 	
 	ptr->send_any_ambe_to_dongle();
 	ptr->get_read_dongle_data();
+}
+
+void CStartDongleAndSound::dongle_ondata_func(void *ptr, short ptr_len)
+{
+
+	if ((ptr != NULL) && (ptr_len != 0) && (pThis->pcm_voice_fd != 0))
+	{
+		auto ret = write(pThis->pcm_voice_fd, ptr, ptr_len);
+		if (ret < 0)
+		{
+			log_warning("write pcm-voice err!!!\r\n");
+		}
+		else
+		{
+			if (ret=!THEPCMFRAMEFLDSAMPLESLENGTH)
+			{
+				log_warning("write pcm-voice uncompleted:%ld\r\n", ret);
+			}
+			log_info("save pcm data okay.\n");
+		}
+	}
+
 }
 
 //void CStartDongleAndSound::extract_hotplug_info(hotplug_info_t *hpug_ptr)//单线程模式

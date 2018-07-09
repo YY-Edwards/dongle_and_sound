@@ -53,6 +53,7 @@ const int DONGLETOIPSCTABLE[49] =
 
 //wx
 const int THEPCMFRAMEFLDSAMPLESLENGTH = 320;
+const int THEAMBEFRAMEFLDSAMPLESLENGTH = 7;
 
 #define AIO_BUFSIZE 512
 
@@ -81,6 +82,8 @@ private:
 
 
 	static CSerialDongle *pThis;
+
+	std::string dongle_name;
 
 	bool	m_PleaseStopSerial;
 

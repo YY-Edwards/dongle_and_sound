@@ -26,6 +26,10 @@ public:
 
 private:
 	static CStartDongleAndSound *pThis;
+
+	int pcm_voice_fd;
+	static void dongle_ondata_func(void *ptr, short ptr_len);
+
 	char *voice_cache_ptr;
 	int cache_nbytes;
 	int next;

@@ -53,8 +53,9 @@ int	CSerialDongle::open_dongle(const char *lpsz_Device)
 	fWaitingOnWrite = false;
 	fWaitingOnPCM = false;
 	fWaitingOnAMBE = false;
+	dongle_name = lpsz_Device;
 
-
+	log_info("new dongle name:%s \n", dongle_name.c_str());
 	auto r_ret = m_usartwrap.init_usart_config(lpsz_Device, O_RDONLY, DONGLEBAUDRATE, DONGLEBITS, DONGLESTOP, DONGLEPARITY);
 	auto w_ret = m_usartwrap.init_usart_config(lpsz_Device, O_WRONLY, DONGLEBAUDRATE, DONGLEBITS, DONGLESTOP, DONGLEPARITY);
 	if ((r_ret<0) || (w_ret<0))
@@ -161,21 +162,21 @@ int	CSerialDongle::open_dongle(const char *lpsz_Device)
 	ret = CreateSerialTxThread();
 
 
-	pcm_voice_fd = open("/opt/pcm.data", O_RDWR | O_APPEND | O_CREAT);
-	if (pcm_voice_fd < 0)
-	{
-		log_warning("pcm_voice_fd open error\r\n");
-		close(pcm_voice_fd);
-		//return;
-	}
-	else
-	{
-		/* 清空文件 */
-		ftruncate(pcm_voice_fd, 0);
+	//pcm_voice_fd = open("/opt/pcm.data", O_RDWR | O_APPEND | O_CREAT);
+	//if (pcm_voice_fd < 0)
+	//{
+	//	log_warning("pcm_voice_fd open error\r\n");
+	//	close(pcm_voice_fd);
+	//	//return;
+	//}
+	//else
+	//{
+	//	/* 清空文件 */
+	//	ftruncate(pcm_voice_fd, 0);
 
-		/* 重新设置文件偏移量 */
-		lseek(pcm_voice_fd, 0, SEEK_SET);
-	}
+	//	/* 重新设置文件偏移量 */
+	//	lseek(pcm_voice_fd, 0, SEEK_SET);
+	//}
 
 	return true;
 
@@ -435,7 +436,7 @@ int CSerialDongle::SerialRxThreadFunc()
 			{
 				//请求操作完成，获取返回值
 				read_nbytes = aio_return(&r_cbp);
-				log_info("dongle recv pcm:%d bytes\n", read_nbytes);
+				log_info("%s recv pcm:%d bytes\n", dongle_name.c_str(), read_nbytes);
 				if (read_nbytes > 0)
 				{
 					//assemble:注意是同步解析。如需要异步，则用环形队列作缓冲。
@@ -627,7 +628,7 @@ void CSerialDongle::aio_write_completion_hander(int signo, siginfo_t *info, void
 			case 0://success
 
 					ret = aio_return(req);
-					log_info("aio_write :%d bytes.\n", ret);
+					log_info("[%s aio_write :%d bytes.]\n", dongle_name.c_str(), ret);
 					nwrited += ret;
 					if (nwrited == AMBE3000_AMBE_BYTESINFRAME || nwrited == AMBE3000_PCM_BYTESINFRAME)
 					{
@@ -808,7 +809,7 @@ void CSerialDongle::deObfuscate(ScrambleDirection theDirection, tAMBEFrame* pAMB
 		
 		char buffer[10];
 		memset(buffer, 0, 10);
-		memcpy(buffer, pAMBEFrame->fld.ChannelBits, 7);
+		memcpy(buffer, pAMBEFrame->fld.ChannelBits, THEAMBEFRAMEFLDSAMPLESLENGTH);
 		//WriteVoice(buffer, 7);
 	}
 }
@@ -983,11 +984,11 @@ void CSerialDongle::extract_voice(char * pBuffer, int len)
 
 	tAMBEFrame* pAMBEFrame;
 	pAMBEFrame = GetFreeAMBEBuffer();
-	auto readLen = (leftLen >= 7) ? 7 : leftLen;
+	auto readLen = (leftLen >= THEAMBEFRAMEFLDSAMPLESLENGTH) ? THEAMBEFRAMEFLDSAMPLESLENGTH : leftLen;
 	memcpy(pAMBEFrame->fld.ChannelBits, pBuffer, readLen);
 	leftLen -= readLen;
 	auto index = readLen;
-	while (readLen == 7)
+	while (readLen == THEAMBEFRAMEFLDSAMPLESLENGTH)
 	{
 		deObfuscate(IPSCTODONGLE, pAMBEFrame);
 		if (MarkAMBEBufferFilled() != true)//将数据推送到环形队列中
@@ -1000,7 +1001,7 @@ void CSerialDongle::extract_voice(char * pBuffer, int len)
 
 			return;
 		}
-		readLen = (leftLen >= 7) ? 7 : leftLen;
+		readLen = (leftLen >= THEAMBEFRAMEFLDSAMPLESLENGTH) ? THEAMBEFRAMEFLDSAMPLESLENGTH : leftLen;
 		if (readLen <= 0)
 		{
 			break;
@@ -1040,22 +1041,34 @@ void CSerialDongle::get_read_dongle_data()
 	uint8_t * pBuffer = NULL;
 
 	pBuffer = read_dongle_data();
-	if ((pBuffer != NULL) && (pcm_voice_fd!=0))
+	if ((pBuffer != NULL) && (DongleRxDataCallBackFunc != nullptr))
 	{
-		auto ret = write(pcm_voice_fd, pBuffer, THEPCMFRAMEFLDSAMPLESLENGTH);
-		if (ret < 0)
+		if (AMBE3000_PCM_TYPE_BYTE == dataType)
 		{
-			log_warning("write pcm-voice err!!!\r\n");
+			DongleRxDataCallBackFunc(pBuffer, THEPCMFRAMEFLDSAMPLESLENGTH);//回调
 		}
-		else
+		else//ambe
 		{
-			if (ret=!THEPCMFRAMEFLDSAMPLESLENGTH)
-			{
-				log_warning("write pcm-voice uncompleted:%ld\r\n", ret);
-			}
-			log_info("save pcm data okay.\n");
+			DongleRxDataCallBackFunc(pBuffer, THEAMBEFRAMEFLDSAMPLESLENGTH);
 		}
 	}
+
+	//if ((pBuffer != NULL) && (pcm_voice_fd!=0))
+	//{
+	//	auto ret = write(pcm_voice_fd, pBuffer, THEPCMFRAMEFLDSAMPLESLENGTH);
+	//	if (ret < 0)
+	//	{
+	//		log_warning("write pcm-voice err!!!\r\n");
+	//	}
+	//	else
+	//	{
+	//		if (ret=!THEPCMFRAMEFLDSAMPLESLENGTH)
+	//		{
+	//			log_warning("write pcm-voice uncompleted:%ld\r\n", ret);
+	//		}
+	//		log_info("save pcm data okay.\n");
+	//	}
+	//}
 	set_read_dongle_data();
 	
 
