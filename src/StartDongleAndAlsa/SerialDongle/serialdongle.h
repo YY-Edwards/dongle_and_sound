@@ -109,8 +109,8 @@ private:
 	bool  fWaitingOnPCM;
 	bool  fWaitingOnAMBE;
 
-	//int send_index; 
-	//int recv_index;
+	int send_index; 
+	int recv_index;
 
 
 

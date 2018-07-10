@@ -390,7 +390,7 @@ int CSerialDongle::SerialRxThreadFunc()
 	struct timespec timeout;
 	timeout.tv_sec = 0;
 	timeout.tv_nsec = 5*1000*1000;
-	//recv_index = 0;
+	recv_index = 0;
 
 	do
 	{
@@ -497,7 +497,7 @@ int CSerialDongle::SerialTxThreadFunc()
 	auto ret = 0;
 	int  snapPCMBufHead;
 	int  snapAMBEBufHead;
-	//send_index = 0;
+	send_index = 0;
 
 	do
 	{
@@ -647,8 +647,8 @@ void CSerialDongle::aio_write_completion_hander(int signo, siginfo_t *info, void
 					pThis->fWaitingOnPCM = false;
 					pThis->fWaitingOnAMBE = false;
 
-					//pThis->send_index++;
-					//log_info("dongle send ambe index:%d\n", pThis->send_index);
+					pThis->send_index++;
+					log_info("dongle send ambe index:%d\n", pThis->send_index);
 				}
 
 				break;
@@ -1053,12 +1053,15 @@ void CSerialDongle::get_read_dongle_data()
 		if (AMBE3000_PCM_TYPE_BYTE == dataType)
 		{
 			DongleRxDataCallBackFunc(pBuffer, THEPCMFRAMEFLDSAMPLESLENGTH);//»Øµ÷
+			dataType = 0;
+			recv_index++;
+			log_info("save pcm-msg index:%d\n", recv_index);
 		}
-		else//ambe
-		{
-			DongleRxDataCallBackFunc(pBuffer, THEAMBEFRAMEFLDSAMPLESLENGTH);
-		}
-		dataType = 0;
+		//else//ambe
+		//{
+		//	DongleRxDataCallBackFunc(pBuffer, THEAMBEFRAMEFLDSAMPLESLENGTH);
+		//}
+		//dataType = 0;
 	}
 
 	//if ((pBuffer != NULL) && (pcm_voice_fd!=0))
