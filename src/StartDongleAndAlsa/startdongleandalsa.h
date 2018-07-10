@@ -8,7 +8,7 @@
 
 struct cmp_str//需要重写比较方式，不然STL内置比较的是指针而不是字符串。
 {
-	bool operator()(char const *a, char const *b)
+	bool operator()(const char *a,const char *b)
 	{
 		return ::strcmp(a, b) < 0;
 	}
@@ -46,7 +46,9 @@ private:
 	void timer();//用来定时(20ms)触发串口读，写数据，并将CSerialDongle对象句柄传入定时器信号处理函数中
 	//CSerialDongle m_serialdongle;
 	CSerialDongle *m_new_dongle_ptr;
-	std::string *lpszDevice_str_ptr_;
+
+	//std::string *lpszDevice_str_ptr_;
+	char * lpszDevice_str_ptr_;
 	//struct cmp_str//需要重写比较方式，不然STL内置比较的是指针而不是字符串。
 	//{
 	//	bool operator()(char const *a, char const *b)
@@ -54,7 +56,7 @@ private:
 	//		return ::strcmp(a, b) < 0;
 	//	}
 	//};
-	map<const char *, CSerialDongle *, cmp_str> dongle_map;
+	map<const char*, CSerialDongle *, cmp_str> dongle_map;
 
 };
 

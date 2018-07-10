@@ -46,7 +46,7 @@ CStartDongleAndSound::~CStartDongleAndSound()
 	}
 	if (lpszDevice_str_ptr_ != nullptr)
 	{
-		delete lpszDevice_str_ptr_;
+		delete []lpszDevice_str_ptr_;
 		lpszDevice_str_ptr_ = nullptr;
 	}
 
@@ -60,11 +60,14 @@ bool CStartDongleAndSound::start(const char *lpszDevice, const char *pcm_name)
 	auto  result = false;
 	m_new_dongle_ptr = nullptr;
 	//std::string lpszDevice_str = lpszDevice;
-	lpszDevice_str_ptr_ = new std::string(lpszDevice);
+	//lpszDevice_str_ptr_ = new std::string(lpszDevice);
+	lpszDevice_str_ptr_ = new char[strlen(lpszDevice)+1];
+	strcpy(lpszDevice_str_ptr_, lpszDevice);
+
 	m_new_dongle_ptr = new CSerialDongle;
 	if (m_new_dongle_ptr != nullptr){
 
-		dongle_map[lpszDevice_str_ptr_->c_str()] = m_new_dongle_ptr;//insert map
+		dongle_map[lpszDevice_str_ptr_] = m_new_dongle_ptr;//insert map
 		result = m_new_dongle_ptr->open_dongle(lpszDevice);
 		if (result != true)
 		{
@@ -99,6 +102,7 @@ void CStartDongleAndSound::stop()
 {
 	//timer_delete(timerid);
 	//m_serialdongle.close_dongle();
+
 	while (dongle_map.size() > 0)
 	{
 		auto it = dongle_map.begin();
@@ -108,14 +112,23 @@ void CStartDongleAndSound::stop()
 			it->second->close_dongle();
 			delete it->second;
 			it->second = nullptr;
-			delete it->first;
+			delete []it->first;
 		
 		}	
 		dongle_map.erase(it);
 
 	}
-	m_new_dongle_ptr = nullptr;
-	lpszDevice_str_ptr_ = nullptr;
+	if (m_new_dongle_ptr != nullptr)
+	{
+		delete m_new_dongle_ptr;
+		m_new_dongle_ptr = nullptr;
+	}
+	if (lpszDevice_str_ptr_ != nullptr)
+	{
+		delete []lpszDevice_str_ptr_;
+		lpszDevice_str_ptr_ = nullptr;
+	}
+
 	if (timerid!=0)
 	timer_delete(timerid);
 	timer_start_flag = false;
@@ -133,7 +146,7 @@ void CStartDongleAndSound::stop(const char *device)//stop one dongle
 			it->second->close_dongle();
 			delete it->second;
 			it->second = nullptr;
-			delete it->first;
+			delete []it->first;
 		}
 		dongle_map.erase(it);
 		log_info("stop dongle:%s\n", device);
