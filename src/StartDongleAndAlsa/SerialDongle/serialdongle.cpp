@@ -1053,7 +1053,7 @@ void CSerialDongle::get_read_dongle_data()
 		if (AMBE3000_PCM_TYPE_BYTE == dataType)
 		{
 			DongleRxDataCallBackFunc(pBuffer, THEPCMFRAMEFLDSAMPLESLENGTH);//»Øµ÷
-			dataType = 0;
+			//dataType = 0;
 			recv_index++;
 			log_info("save pcm-msg index:%d\n", recv_index);
 		}
