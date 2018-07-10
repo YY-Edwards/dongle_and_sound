@@ -43,6 +43,12 @@ CStartDongleAndSound::~CStartDongleAndSound()
 		delete m_new_dongle_ptr;
 		m_new_dongle_ptr = nullptr;
 	}
+	if (lpszDevice_str_ptr_ != nullptr)
+	{
+		delete lpszDevice_str_ptr_;
+		lpszDevice_str_ptr_ = nullptr;
+	}
+
 	close(pcm_voice_fd);
 
 	log_info("Destory: CStartDongleAndSound\n");
@@ -108,6 +114,7 @@ void CStartDongleAndSound::stop()
 
 	}
 	m_new_dongle_ptr = nullptr;
+	lpszDevice_str_ptr_ = nullptr;
 	timer_delete(timerid);
 	timer_start_flag = false;
 
