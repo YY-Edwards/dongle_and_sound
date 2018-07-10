@@ -424,7 +424,7 @@ bool DynRingQueue::PushToQueue(void *packet, int len)
 {
 	dynamic_fifoqueue_t * ptr =NULL;
 	int next_index = 0;
-	int ret = false;
+	bool ret = false;
 	if (len>p_data_deep)return false;//data overout
 
 	queuelock->Lock();

@@ -43,6 +43,7 @@ CStartDongleAndSound::~CStartDongleAndSound()
 		delete m_new_dongle_ptr;
 		m_new_dongle_ptr = nullptr;
 	}
+	close(pcm_voice_fd);
 
 	log_info("Destory: CStartDongleAndSound\n");
 }
@@ -192,14 +193,14 @@ void CStartDongleAndSound::timer()//用来定时(20ms)触发串口读，写数据，并将CSeria
 
 void CStartDongleAndSound::read_voice_file(char* pBuffer, int len)
 {
-	int AMBE_fragment_bits = 7;
-	int q_len = len / AMBE_fragment_bits;
+	int AMBE_fragment_bytes = THEAMBEFRAMEFLDSAMPLESLENGTH;
+	int q_len = len / AMBE_fragment_bytes;
 	int index = 0;
 	map<const char *, CSerialDongle *, cmp_str>::iterator it;
 	for (it = dongle_map.begin(); it != dongle_map.end();)
 	{
-		it->second->extract_voice((pBuffer + index), AMBE_fragment_bits);
-		index += AMBE_fragment_bits;
+		it->second->extract_voice((pBuffer + index), AMBE_fragment_bytes);
+		index += AMBE_fragment_bytes;
 		if (index >= len)break;
 		it++;
 		if (it == dongle_map.end())//循环
@@ -208,10 +209,10 @@ void CStartDongleAndSound::read_voice_file(char* pBuffer, int len)
 		}
 	}
 
-	log_info("extract voice data over. \n");
+
 	/*if (m_new_dongle_ptr != nullptr)
 		m_new_dongle_ptr->extract_voice(pBuffer, len);*/
-
+	log_info("extract voice data over. \n");
 	//m_serialdongle.extract_voice(pBuffer, len);
 }
 

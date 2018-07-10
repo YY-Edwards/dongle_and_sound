@@ -936,7 +936,7 @@ void CSerialDongle::ParseDVSImsg(DVSI3000struct* pMsg)
 	uint8_t mType;
 	mType = pMsg->base.Type;	//strip out just type field
 	dataType = mType;
-	auto ret = 0;
+	auto ret = false;
 	switch (mType){
 	case AMBE3000_AMBE_TYPE_BYTE:
 		//is a compressed data frame from the Dongle
