@@ -112,7 +112,6 @@ void CStartDongleAndSound::stop()
 			it->second->close_dongle();
 			delete it->second;
 			it->second = nullptr;
-			delete []it->first;
 		
 		}	
 		dongle_map.erase(it);
@@ -146,7 +145,6 @@ void CStartDongleAndSound::stop(const char *device)//stop one dongle
 			it->second->close_dongle();
 			delete it->second;
 			it->second = nullptr;
-			delete []it->first;
 		}
 		dongle_map.erase(it);
 		log_info("stop dongle:%s\n", device);
