@@ -6,6 +6,7 @@ CStartDongleAndSound::CStartDongleAndSound()
 	pThis = this;
 	voice_cache_ptr = nullptr;
 	m_new_dongle_ptr = nullptr;
+	lpszDevice_str_ptr_ = nullptr;
 	cache_nbytes = 0;
 	next = 0;
 	timer_start_flag = false;
@@ -50,11 +51,12 @@ bool CStartDongleAndSound::start(const char *lpszDevice, const char *pcm_name)
 {
 	auto  result = false;
 	m_new_dongle_ptr = nullptr;
-
+	//std::string lpszDevice_str = lpszDevice;
+	lpszDevice_str_ptr_ = new std::string(lpszDevice);
 	m_new_dongle_ptr = new CSerialDongle;
 	if (m_new_dongle_ptr != nullptr){
 
-		dongle_map[lpszDevice] = m_new_dongle_ptr;//insert map
+		dongle_map[lpszDevice_str_ptr_->c_str()] = m_new_dongle_ptr;//insert map
 		result = m_new_dongle_ptr->open_dongle(lpszDevice);
 		if (result != true)
 		{
@@ -94,11 +96,13 @@ void CStartDongleAndSound::stop()
 		auto it = dongle_map.begin();
 		if (it->second != nullptr){
 
+			log_info("stop dongle:%s\n", it->first);
 			it->second->close_dongle();
 			delete it->second;
 			it->second = nullptr;
-		}
-		log_info("stop dongle:%s\n", it->first);
+			delete it->first;
+		
+		}	
 		dongle_map.erase(it);
 
 	}
@@ -119,6 +123,7 @@ void CStartDongleAndSound::stop(const char *device)//stop one dongle
 			it->second->close_dongle();
 			delete it->second;
 			it->second = nullptr;
+			delete it->first;
 		}
 		dongle_map.erase(it);
 		log_info("stop dongle:%s\n", device);

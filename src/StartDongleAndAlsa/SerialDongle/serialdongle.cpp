@@ -609,7 +609,7 @@ void CSerialDongle::aio_write_completion_hander(int signo, siginfo_t *info, void
 
 		/*AIOÇëÇóÍê³É£¿*/
 		ret = aio_error(req);
-		log_info("\r\n\r\n");
+		log_info("\n\n");
 		//log_info("aio write status:%d\n", ret);
 		switch (ret)
 		{
@@ -628,7 +628,7 @@ void CSerialDongle::aio_write_completion_hander(int signo, siginfo_t *info, void
 			case 0://success
 
 					ret = aio_return(req);
-					log_info("[%s aio_write :%d bytes.]\n", pThis->dongle_name.c_str(), ret);
+					log_info("fd:%d,[%s aio_write :%d bytes.]\n", req->aio_fileds, pThis->dongle_name.c_str(), ret);
 					nwrited += ret;
 					if (nwrited == AMBE3000_AMBE_BYTESINFRAME || nwrited == AMBE3000_PCM_BYTESINFRAME)
 					{
@@ -684,7 +684,7 @@ void CSerialDongle::set_tx_serial_event()
 
 	if (tx_serial_event_cond != nullptr)
 	{
-		log_info("timer set write event[:]\n");
+		//log_info("timer set write event[:]\n");
 		tx_serial_event_cond->CondTrigger(false);
 		
 	}
@@ -1025,7 +1025,7 @@ uint8_t * CSerialDongle::read_dongle_data()
 	auto ret = the_pcm_sample_queue_ptr->TakeFromQueue(thePCMFrameFldSamples, (int &)len, true);
 	if (ret == 0)
 	{
-		dataType = 0;
+		//dataType = 0;
 		return thePCMFrameFldSamples;
 	}
 	else
@@ -1051,6 +1051,7 @@ void CSerialDongle::get_read_dongle_data()
 		{
 			DongleRxDataCallBackFunc(pBuffer, THEAMBEFRAMEFLDSAMPLESLENGTH);
 		}
+		dataType = 0;
 	}
 
 	//if ((pBuffer != NULL) && (pcm_voice_fd!=0))
