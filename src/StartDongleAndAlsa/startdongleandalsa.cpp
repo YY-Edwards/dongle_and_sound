@@ -241,6 +241,7 @@ void timer_routine(union sigval v)
 	ptr->get_read_dongle_data();*/
 	
 	map<const char *, CSerialDongle *, cmp_str> *ptr = (map<const char *, CSerialDongle *, cmp_str> *)v.sival_ptr;
+	if (ptr->size() == 0)return;
 	static map<const char *, CSerialDongle *, cmp_str>::iterator it = ptr->begin();
 
 	it->second->send_any_ambe_to_dongle();
