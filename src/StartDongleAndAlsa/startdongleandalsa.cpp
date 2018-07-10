@@ -9,6 +9,7 @@ CStartDongleAndSound::CStartDongleAndSound()
 	lpszDevice_str_ptr_ = nullptr;
 	cache_nbytes = 0;
 	next = 0;
+	timerid = 0;
 	timer_start_flag = false;
 	dongle_map.clear();
 
@@ -115,6 +116,7 @@ void CStartDongleAndSound::stop()
 	}
 	m_new_dongle_ptr = nullptr;
 	lpszDevice_str_ptr_ = nullptr;
+	if (timerid!=0)
 	timer_delete(timerid);
 	timer_start_flag = false;
 
