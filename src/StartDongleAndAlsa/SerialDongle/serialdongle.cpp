@@ -628,7 +628,7 @@ void CSerialDongle::aio_write_completion_hander(int signo, siginfo_t *info, void
 			case 0://success
 
 					ret = aio_return(req);
-					log_info("fd:%d,[%s aio_write :%d bytes.]\n", req->aio_fileds, pThis->dongle_name.c_str(), ret);
+					log_info("fd:%d,[%s aio_write :%d bytes.]\n", req->aio_fildes, pThis->dongle_name.c_str(), ret);
 					nwrited += ret;
 					if (nwrited == AMBE3000_AMBE_BYTESINFRAME || nwrited == AMBE3000_PCM_BYTESINFRAME)
 					{
