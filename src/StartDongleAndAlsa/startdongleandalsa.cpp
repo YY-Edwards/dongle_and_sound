@@ -119,12 +119,10 @@ void CStartDongleAndSound::stop()
 	}
 	if (m_new_dongle_ptr != nullptr)
 	{
-		delete m_new_dongle_ptr;
 		m_new_dongle_ptr = nullptr;
 	}
 	if (lpszDevice_str_ptr_ != nullptr)
 	{
-		delete []lpszDevice_str_ptr_;
 		lpszDevice_str_ptr_ = nullptr;
 	}
 
