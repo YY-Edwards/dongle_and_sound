@@ -607,12 +607,14 @@ void CSerialDongle::aio_write_completion_hander(int signo, siginfo_t *info, void
 		//获取aiocb 结构体的信息
 		req = (struct aiocb*) info->si_value.sival_ptr;
 
-		/*AIO请求完成？*/
-		ret = aio_error(req);
-		log_info("\n\n");
-		//log_info("aio write status:%d\n", ret);
-		switch (ret)
+		if (req->aio_fildes == pThis->w_cbp.aio_fildes)//确定信号来自指定的文件描述符
 		{
+			/*AIO请求完成？*/
+			ret = aio_error(req);
+			log_info("\n\n");
+			//log_info("aio write status:%d\n", ret);
+			switch (ret)
+			{
 			case EINPROGRESS://working
 				log_info("aio write is EINPROGRESS.\n");
 				break;
@@ -627,36 +629,41 @@ void CSerialDongle::aio_write_completion_hander(int signo, siginfo_t *info, void
 
 			case 0://success
 
-					ret = aio_return(req);
-					log_info("fd:%d,[%s aio_write :%d bytes.]\n", req->aio_fildes, pThis->dongle_name.c_str(), ret);
-					nwrited += ret;
-					if (nwrited == AMBE3000_AMBE_BYTESINFRAME || nwrited == AMBE3000_PCM_BYTESINFRAME)
-					{
-						log_info("aio_write complete[.]\n");
-						nwrited = 0;
-						if (pThis->fWaitingOnPCM){
-							pThis->m_PCMBufTail = (pThis->m_PCMBufTail + 1) & MAXDONGLEPCMFRAMESMASK;
-						}
-						if (pThis->fWaitingOnAMBE){
-							pThis->m_AMBEBufTail = (pThis->m_AMBEBufTail + 1) & MAXDONGLEAMBEFRAMESMASK;
-						}
-
-						pThis->fWaitingOnWrite = false;
-						pThis->fWaitingOnPCM = false;
-						pThis->fWaitingOnAMBE = false;
-
-						//pThis->send_index++;
-						//log_info("dongle send ambe index:%d\n", pThis->send_index);
+				ret = aio_return(req);
+				log_info("fd:%d,[%s aio_write :%d bytes.]\n", req->aio_fildes, pThis->dongle_name.c_str(), ret);
+				nwrited += ret;
+				if (nwrited == AMBE3000_AMBE_BYTESINFRAME || nwrited == AMBE3000_PCM_BYTESINFRAME)
+				{
+					log_info("aio_write complete[.]\n");
+					nwrited = 0;
+					if (pThis->fWaitingOnPCM){
+						pThis->m_PCMBufTail = (pThis->m_PCMBufTail + 1) & MAXDONGLEPCMFRAMESMASK;
 					}
+					if (pThis->fWaitingOnAMBE){
+						pThis->m_AMBEBufTail = (pThis->m_AMBEBufTail + 1) & MAXDONGLEAMBEFRAMESMASK;
+					}
+
+					pThis->fWaitingOnWrite = false;
+					pThis->fWaitingOnPCM = false;
+					pThis->fWaitingOnAMBE = false;
+
+					//pThis->send_index++;
+					//log_info("dongle send ambe index:%d\n", pThis->send_index);
+				}
 
 				break;
 			default:
 				break;
+			}
+		}
+		else
+		{
+			log_warning("note,other fd: %d \n", req->aio_fildes);
 		}
 	}
 	else
 	{
-		log_warning("note,other singal:%d\n", info->si_signo);
+		log_warning("note,other singal:%d \n", info->si_signo);
 	}
 
 }

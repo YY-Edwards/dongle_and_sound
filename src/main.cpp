@@ -89,7 +89,7 @@ static void extract_hotplug_info_func(hotplug_info_t *hpug_ptr)
 			if (m_startdongle != nullptr){
 
 				m_startdongle->stop(temp_ptr->devname.c_str());
-				dongle_count--;
+				if (dongle_count>0)dongle_count--;
 			}
 
 
@@ -104,7 +104,7 @@ static void extract_hotplug_info_func(hotplug_info_t *hpug_ptr)
 	{
 		log_warning("find no dongle!\n");
 	}
-	if (dongle_count == 4)
+	if (dongle_count == 2)
 	{
 		sleep(2);
 		log_info("Four dongle has prepared... \n");
