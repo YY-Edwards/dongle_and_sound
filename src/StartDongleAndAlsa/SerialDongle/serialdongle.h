@@ -14,8 +14,8 @@
 #include "syninterface.h"
 #include "fifoqueue.h"
 
-#define AIO_WRITE_CALLBACK
-//#define AIO_WRITE_SIGNAL
+//#define AIO_WRITE_CALLBACK
+#define AIO_WRITE_SIGNAL
 
 
 const int  INTERNALCOMBUFFSIZE	= 2048; 
@@ -33,6 +33,15 @@ enum    ScrambleDirection  {
 	IPSCTODONGLE,
 	DONGLETOIPSC
 };
+
+
+typedef struct{
+
+	CSerialDongle	*the_pthis;
+	struct aiocb    *w_cbp;//write
+
+}aio_hander_t;
+
 
 //Serial Events (two different arrays).
 const int SERIAL_TIMEOUT = 1;
@@ -67,7 +76,7 @@ public:
 	virtual ~CSerialDongle();
 
 	//Called from Dlg/User.
-	int		open_dongle(const char *lpsz_Device);
+	int		open_dongle(const char *lpsz_Devic, void(*func_ptr)(int signo, siginfo_t *info, void *context));
 	void	send_dongle_initialization(void);//send control packets
 	void	close_dongle(void);
 
@@ -85,6 +94,8 @@ private:
 
 
 	static CSerialDongle *pThis;
+
+	aio_hander_t aio_hander_info;
 
 	std::string dongle_name;
 

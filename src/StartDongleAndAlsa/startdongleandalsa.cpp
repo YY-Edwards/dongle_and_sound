@@ -68,7 +68,7 @@ bool CStartDongleAndSound::start(const char *lpszDevice, const char *pcm_name)
 	if (m_new_dongle_ptr != nullptr){
 
 		dongle_map[lpszDevice] = m_new_dongle_ptr;//insert map
-		result = m_new_dongle_ptr->open_dongle(lpszDevice);
+		result = m_new_dongle_ptr->open_dongle(lpszDevice, dongle_aio_completion_hander);
 		if (result != true)
 		{
 			log_warning("open dongle failure!\n");
@@ -358,3 +358,81 @@ void CStartDongleAndSound::dongle_ondata_func(void *ptr, short ptr_len)
 //	//read_voice_file(voice_cache_ptr, cache_nbytes);
 //
 //}
+
+void CStartDongleAndSound::dongle_aio_completion_hander(int signo, siginfo_t *info, void *context)
+{
+
+	struct aiocb  *req;
+	aio_hander_t *my_aio_hander_ptr;
+	int           ret;
+	static int nwrited = 0;
+
+	if (info->si_signo == SIGIO)//确定是我们需要的信号
+	{
+		//log_info("w-signal code:%d\n", info->si_code); 
+		//获取aiocb 结构体的信息
+		//req = (struct aiocb*) info->si_value.sival_ptr;
+		my_aio_hander_ptr = (struct aio_hander_t*) info->si_value.sival_ptr;
+		req = my_aio_hander_ptr->w_cbp;
+
+		if (req->aio_fildes == my_aio_hander_ptr->the_pthis->w_cbp.aio_fildes)//确定信号来自指定的文件描述符
+		{
+			/*AIO请求完成？*/
+			ret = aio_error(req);
+			log_info("\n\n");
+			//log_info("aio write status:%d\n", ret);
+			switch (ret)
+			{
+			case EINPROGRESS://working
+				log_info("aio write is EINPROGRESS.\n");
+				break;
+
+			case ECANCELED://cancelled
+				log_info("aio write is ECANCELLED.\n");
+				break;
+
+			case -1://failure
+				log_info("aio write is failure, errno:%s\n", strerror(errno));
+				break;
+
+			case 0://success
+
+				ret = aio_return(req);
+				log_info("fd:%d,[%s aio_write :%d bytes.]\n", req->aio_fildes, my_aio_hander_ptr->the_pthis->dongle_name.c_str(), ret);
+				nwrited += ret;
+				if (nwrited == AMBE3000_AMBE_BYTESINFRAME || nwrited == AMBE3000_PCM_BYTESINFRAME)
+				{
+					log_info("aio_write complete[.]\n");
+					nwrited = 0;
+					if (my_aio_hander_ptr->the_pthis->fWaitingOnPCM){
+						my_aio_hander_ptr->the_pthis->m_PCMBufTail = (my_aio_hander_ptr->the_pthis->m_PCMBufTail + 1) & MAXDONGLEPCMFRAMESMASK;
+					}
+					if (my_aio_hander_ptr->the_pthis->fWaitingOnAMBE){
+						my_aio_hander_ptr->the_pthis->m_AMBEBufTail = (my_aio_hander_ptr->the_pthis->m_AMBEBufTail + 1) & MAXDONGLEAMBEFRAMESMASK;
+					}
+
+					my_aio_hander_ptr->the_pthis->fWaitingOnWrite = false;
+					my_aio_hander_ptr->the_pthis->fWaitingOnPCM = false;
+					my_aio_hander_ptr->the_pthis->fWaitingOnAMBE = false;
+
+					my_aio_hander_ptr->the_pthis->send_index++;
+					log_info("%s send ambe index:%d\n", my_aio_hander_ptr->the_pthis->dongle_name.c_str(), my_aio_hander_ptr->the_pthis->send_index);
+				}
+
+				break;
+			default:
+				break;
+			}
+		}
+		else
+		{
+			log_warning("note,other fd: %d \n", req->aio_fildes);
+		}
+	}
+	else
+	{
+		log_warning("note,other singal:%d \n", info->si_signo);
+	}
+
+
+}

@@ -38,7 +38,7 @@ CSerialDongle::~CSerialDongle()
 	log_info("Destory: CSerialDongle\n");
 }
 
-int	CSerialDongle::open_dongle(const char *lpsz_Device)
+int	CSerialDongle::open_dongle(const char *lpsz_Device, void(*func_ptr)(int signo, siginfo_t *info, void *context))
 {
 	m_ParserState = FIND_START;
 	m_RxMsgLength = 0;
@@ -126,14 +126,24 @@ int	CSerialDongle::open_dongle(const char *lpsz_Device)
 		//设置信号处理函数
 		sigemptyset(&sig_w_act.sa_mask);
 		sig_w_act.sa_flags = SA_SIGINFO;
-		sig_w_act.sa_sigaction = aio_write_completion_hander;
+		sig_w_act.sa_sigaction = func_ptr;//共用一个信号处理函数
+		//sig_w_act.sa_sigaction = aio_write_completion_hander;
 
 		//连接AIO请求和信号处理函数
 		w_cbp.aio_sigevent.sigev_notify = SIGEV_SIGNAL;
 		//设置产生的信号
 		w_cbp.aio_sigevent.sigev_signo = SIGIO;
+
+
+		aio_hander_info.w_cbp = &w_cbp;
+		aio_hander_info.the_pthis = &pThis;
+
+		//传入aio_hander_t结构体
+		w_cbp.aio_sigevent.sigev_value.sival_ptr = &aio_hander_info;
+
 		//传入aiocb 结构体
-		w_cbp.aio_sigevent.sigev_value.sival_ptr = &w_cbp;
+		//w_cbp.aio_sigevent.sigev_value.sival_ptr = &w_cbp;
+
 		
 		//将信号与信号处理函数绑定
 		sigaction(SIGIO, &sig_w_act, NULL);
