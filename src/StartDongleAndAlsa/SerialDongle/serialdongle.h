@@ -174,7 +174,7 @@ private:
 	#ifdef AIO_WRITE_CALLBACK 
 		static void aio_write_completion_hander(sigval_t sigval);
 	#else
-		static void aio_read_completion_hander(int signo, siginfo_t *info, void *context);
+		static void aio_write_completion_hander(int signo, siginfo_t *info, void *context);
 	#endif
 	//static void aio_read_completion_hander(int signo, siginfo_t *info, void *context);
 	//

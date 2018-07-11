@@ -374,7 +374,7 @@ void CStartDongleAndSound::dongle_aio_completion_hander(int signo, siginfo_t *in
 		//log_info("w-signal code:%d\n", info->si_code); 
 		//获取aiocb 结构体的信息
 		//req = (struct aiocb*) info->si_value.sival_ptr;
-		my_aio_hander_ptr = (struct aio_hander_t*) info->si_value.sival_ptr;
+		my_aio_hander_ptr = (aio_hander_t*) info->si_value.sival_ptr;
 		req = my_aio_hander_ptr->w_cbp_ptr;
 		this_ptr = (CSerialDongle *)my_aio_hander_ptr->the_CSerialDongle_pthis;
 
