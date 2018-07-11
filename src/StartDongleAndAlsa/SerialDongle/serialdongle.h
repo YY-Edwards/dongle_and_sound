@@ -153,10 +153,10 @@ private:
 
 	//asyn-callback
 	//static void aio_read_completion_hander(sigval_t sigval);
-	//static void aio_write_completion_hander(sigval_t sigval);
+	static void aio_write_completion_hander(sigval_t sigval);
 	//static void aio_read_completion_hander(int signo, siginfo_t *info, void *context);
 	//
-	static void aio_write_completion_hander(int signo, siginfo_t *info, void *context);
+	//static void aio_write_completion_hander(int signo, siginfo_t *info, void *context);
 	//static void aio_completion_hander(int signo, siginfo_t *info, void *context);
 	//void aio_read_completion_hander_func();
 	//void aio_write_completion_hander_func();

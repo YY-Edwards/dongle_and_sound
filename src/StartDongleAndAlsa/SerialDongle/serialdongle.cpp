@@ -118,33 +118,33 @@ int	CSerialDongle::open_dongle(const char *lpsz_Device)
 		w_cbp.aio_fildes = m_wComm;
 		//发起读请求
 
-		////设置异步通知方式
-		/*用信号通知*/
-		struct sigaction sig_w_act;
-		//设置信号处理函数
-		sigemptyset(&sig_w_act.sa_mask);
-		sig_w_act.sa_flags = SA_SIGINFO;
-		sig_w_act.sa_sigaction = aio_write_completion_hander;
+		//////设置异步通知方式
+		///*用信号通知*/
+		//struct sigaction sig_w_act;
+		////设置信号处理函数
+		//sigemptyset(&sig_w_act.sa_mask);
+		//sig_w_act.sa_flags = SA_SIGINFO;
+		//sig_w_act.sa_sigaction = aio_write_completion_hander;
 
-		//连接AIO请求和信号处理函数
-		w_cbp.aio_sigevent.sigev_notify = SIGEV_SIGNAL;
-		//设置产生的信号
-		w_cbp.aio_sigevent.sigev_signo = SIGIO;
-		//传入aiocb 结构体
-		w_cbp.aio_sigevent.sigev_value.sival_ptr = &w_cbp;
-		
-		//将信号与信号处理函数绑定
-		sigaction(SIGIO, &sig_w_act, NULL);
+		////连接AIO请求和信号处理函数
+		//w_cbp.aio_sigevent.sigev_notify = SIGEV_SIGNAL;
+		////设置产生的信号
+		//w_cbp.aio_sigevent.sigev_signo = SIGIO;
+		////传入aiocb 结构体
+		//w_cbp.aio_sigevent.sigev_value.sival_ptr = &w_cbp;
+		//
+		////将信号与信号处理函数绑定
+		//sigaction(SIGIO, &sig_w_act, NULL);
 
 
 		////用线程回调
-		//w_cbp.aio_sigevent.sigev_notify = SIGEV_THREAD;
-		////设置回调函数
-		//w_cbp.aio_sigevent.sigev_notify_function = aio_write_completion_hander;
-		////传入aiocb 结构体
-		//w_cbp.aio_sigevent.sigev_value.sival_ptr = &w_cbp;
-		////设置属性为默认
-		//w_cbp.aio_sigevent.sigev_notify_attributes = NULL;
+		w_cbp.aio_sigevent.sigev_notify = SIGEV_THREAD;
+		//设置回调函数
+		w_cbp.aio_sigevent.sigev_notify_function = aio_write_completion_hander;
+		//传入aiocb 结构体
+		w_cbp.aio_sigevent.sigev_value.sival_ptr = &w_cbp;
+		//设置属性为默认
+		w_cbp.aio_sigevent.sigev_notify_attributes = NULL;
 
 
 	}
@@ -593,8 +593,8 @@ int CSerialDongle::SerialTxThreadFunc()
 //}
 
 
-void CSerialDongle::aio_write_completion_hander(int signo, siginfo_t *info, void *context)
-//void CSerialDongle::aio_write_completion_hander(sigval_t sigval)//must be static since is thread
+//void CSerialDongle::aio_write_completion_hander(int signo, siginfo_t *info, void *context)
+void CSerialDongle::aio_write_completion_hander(sigval_t sigval)//must be static since is thread
 {
 
 	struct aiocb  *req;
@@ -605,8 +605,8 @@ void CSerialDongle::aio_write_completion_hander(int signo, siginfo_t *info, void
 	{
 		//log_info("w-signal code:%d\n", info->si_code); 
 		//获取aiocb 结构体的信息
-		req = (struct aiocb*) info->si_value.sival_ptr;
-
+		//req = (struct aiocb*) info->si_value.sival_ptr;
+		req = (struct aiocb*) sigval.sival_ptr;
 		if (req->aio_fildes == pThis->w_cbp.aio_fildes)//确定信号来自指定的文件描述符
 		{
 			/*AIO请求完成？*/
