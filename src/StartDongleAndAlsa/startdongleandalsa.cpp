@@ -10,7 +10,7 @@ CStartDongleAndSound::CStartDongleAndSound()
 	cache_nbytes = 0;
 	next = 0;
 	timerid = 0;
-	timer_start_flag = false;
+	timer_created_flag = false;
 	dongle_map.clear();
 
 	pcm_voice_fd = open("/opt/pcm.data", O_RDWR | O_APPEND | O_CREAT);
@@ -78,7 +78,7 @@ bool CStartDongleAndSound::start(const char *lpszDevice, const char *pcm_name)
 		log_info("open a new dongle okay\n");
 		m_new_dongle_ptr->send_dongle_initialization();
 
-		//timer();
+		timer();
 	}
 
 
@@ -105,7 +105,7 @@ void CStartDongleAndSound::stop()
 
 	if (timerid != 0)
 		timer_delete(timerid);
-	timer_start_flag = false;
+	timer_created_flag = false;
 
 	while (dongle_map.size() > 0)
 	{
@@ -158,9 +158,61 @@ void CStartDongleAndSound::stop(const char *device)//stop one dongle
 void CStartDongleAndSound::run_timer()
 {
 
-	timer();
+
+	//timer();
+
+	// XXX int timer_settime(timer_t timerid, int flags, const struct itimerspec *new_value,struct itimerspec *old_value);  
+	// timerid--定时器标识  
+	// flags--0表示相对时间，1表示绝对时间，通常使用相对时间  
+	// new_value--定时器的新初始值和间隔，如下面的it  
+	// old_value--取值通常为0，即第四个参数常为NULL,若不为NULL，则返回定时器的前一个值  
+	//第一次间隔it.it_value这么长,以后每次都是it.it_interval这么长,就是说it.it_value变0的时候会装载it.it_interval的值  
+	//it.it_interval可以理解为周期  
+	struct itimerspec it;
+	it.it_interval.tv_sec = 0;
+	it.it_interval.tv_nsec = 20000000;//间隔20ms
+	it.it_value.tv_sec = 0;
+	it.it_value.tv_nsec = 20000000;
+
+	if (timer_settime(timerid, 0, &it, NULL) == -1)
+	{
+		log_warning("fail to timer_settime:%s\n", strerror(errno));
+		timer_delete(timerid);
+		//return -1;
+	}
+
+
 
 }
+
+void CStartDongleAndSound::pause_timer()
+{
+
+	//timer();
+
+	// XXX int timer_settime(timer_t timerid, int flags, const struct itimerspec *new_value,struct itimerspec *old_value);  
+	// timerid--定时器标识  
+	// flags--0表示相对时间，1表示绝对时间，通常使用相对时间  
+	// new_value--定时器的新初始值和间隔，如下面的it  
+	// old_value--取值通常为0，即第四个参数常为NULL,若不为NULL，则返回定时器的前一个值  
+	//第一次间隔it.it_value这么长,以后每次都是it.it_interval这么长,就是说it.it_value变0的时候会装载it.it_interval的值  
+	//it.it_interval可以理解为周期  
+	struct itimerspec it;
+	it.it_interval.tv_sec = 0;
+	it.it_interval.tv_nsec = 0;//间隔0
+	it.it_value.tv_sec = 0;
+	it.it_value.tv_nsec = 0;
+
+	if (timer_settime(timerid, 0, &it, NULL) == -1)
+	{
+		log_warning("fail to timer_settime:%s\n", strerror(errno));
+		timer_delete(timerid);
+		//return -1;
+	}
+
+}
+
+
 
 void CStartDongleAndSound::timer()//用来定时(20ms)触发串口读，写数据，并将CSerialDongle对象句柄传入定时器信号处理函数中
 {
@@ -169,7 +221,7 @@ void CStartDongleAndSound::timer()//用来定时(20ms)触发串口读，写数据，并将CSeria
 	// evp--存放环境值的地址,结构成员说明了定时器到期的通知方式和处理方式等  
 	// timerid--定时器标识符  
 	//timer_t timerid;
-	if (timer_start_flag)return;
+	if (timer_created_flag)return;
 	struct sigevent evp;
 	memset(&evp, 0, sizeof(struct sigevent));   //清零初始化  
 
@@ -185,27 +237,27 @@ void CStartDongleAndSound::timer()//用来定时(20ms)触发串口读，写数据，并将CSeria
 		//return -1;
 	}
 
-	// XXX int timer_settime(timer_t timerid, int flags, const struct itimerspec *new_value,struct itimerspec *old_value);  
-	// timerid--定时器标识  
-	// flags--0表示相对时间，1表示绝对时间，通常使用相对时间  
-	// new_value--定时器的新初始值和间隔，如下面的it  
-	// old_value--取值通常为0，即第四个参数常为NULL,若不为NULL，则返回定时器的前一个值  
-	//第一次间隔it.it_value这么长,以后每次都是it.it_interval这么长,就是说it.it_value变0的时候会装载it.it_interval的值  
-	//it.it_interval可以理解为周期  
-	struct itimerspec it;
-	it.it_interval.tv_sec = 0;  
-	it.it_interval.tv_nsec = 20000000;//间隔20ms
-	it.it_value.tv_sec = 0;
-	it.it_value.tv_nsec = 20000000;
+	//// XXX int timer_settime(timer_t timerid, int flags, const struct itimerspec *new_value,struct itimerspec *old_value);  
+	//// timerid--定时器标识  
+	//// flags--0表示相对时间，1表示绝对时间，通常使用相对时间  
+	//// new_value--定时器的新初始值和间隔，如下面的it  
+	//// old_value--取值通常为0，即第四个参数常为NULL,若不为NULL，则返回定时器的前一个值  
+	////第一次间隔it.it_value这么长,以后每次都是it.it_interval这么长,就是说it.it_value变0的时候会装载it.it_interval的值  
+	////it.it_interval可以理解为周期  
+	//struct itimerspec it;
+	//it.it_interval.tv_sec = 0;  
+	//it.it_interval.tv_nsec = 20000000;//间隔20ms
+	//it.it_value.tv_sec = 0;
+	//it.it_value.tv_nsec = 20000000;
 
-	if (timer_settime(timerid, 0, &it, NULL) == -1)
-	{
-		log_warning("fail to timer_settime:%s\n", strerror(errno));
-		timer_delete(timerid);
-		//return -1;
-	}
+	//if (timer_settime(timerid, 0, &it, NULL) == -1)
+	//{
+	//	log_warning("fail to timer_settime:%s\n", strerror(errno));
+	//	timer_delete(timerid);
+	//	//return -1;
+	//}
 
-	timer_start_flag = true;
+	timer_created_flag = true;
 	log_info("create timer okay.\n");
 
 }
