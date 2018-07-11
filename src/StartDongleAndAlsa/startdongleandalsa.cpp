@@ -6,7 +6,7 @@ CStartDongleAndSound::CStartDongleAndSound()
 	pThis = this;
 	voice_cache_ptr = nullptr;
 	m_new_dongle_ptr = nullptr;
-	lpszDevice_str_ptr_ = nullptr;
+	//lpszDevice_str_ptr_ = nullptr;
 	cache_nbytes = 0;
 	next = 0;
 	timerid = 0;
@@ -44,11 +44,11 @@ CStartDongleAndSound::~CStartDongleAndSound()
 		delete m_new_dongle_ptr;
 		m_new_dongle_ptr = nullptr;
 	}
-	if (lpszDevice_str_ptr_ != nullptr)
-	{
-		delete []lpszDevice_str_ptr_;
-		lpszDevice_str_ptr_ = nullptr;
-	}
+	//if (lpszDevice_str_ptr_ != nullptr)
+	//{
+	//	delete []lpszDevice_str_ptr_;
+	//	lpszDevice_str_ptr_ = nullptr;
+	//}
 
 	close(pcm_voice_fd);
 
@@ -61,13 +61,13 @@ bool CStartDongleAndSound::start(const char *lpszDevice, const char *pcm_name)
 	m_new_dongle_ptr = nullptr;
 	//std::string lpszDevice_str = lpszDevice;
 	//lpszDevice_str_ptr_ = new std::string(lpszDevice);
-	lpszDevice_str_ptr_ = new char[strlen(lpszDevice)+1];
-	strcpy(lpszDevice_str_ptr_, lpszDevice);
+	//lpszDevice_str_ptr_ = new char[strlen(lpszDevice)+1];
+	//strcpy(lpszDevice_str_ptr_, lpszDevice);
 
 	m_new_dongle_ptr = new CSerialDongle;
 	if (m_new_dongle_ptr != nullptr){
 
-		dongle_map[lpszDevice_str_ptr_] = m_new_dongle_ptr;//insert map
+		dongle_map[lpszDevice] = m_new_dongle_ptr;//insert map
 		result = m_new_dongle_ptr->open_dongle(lpszDevice);
 		if (result != true)
 		{
@@ -121,10 +121,10 @@ void CStartDongleAndSound::stop()
 	{
 		m_new_dongle_ptr = nullptr;
 	}
-	if (lpszDevice_str_ptr_ != nullptr)
+	/*if (lpszDevice_str_ptr_ != nullptr)
 	{
 		lpszDevice_str_ptr_ = nullptr;
-	}
+	}*/
 
 	if (timerid!=0)
 	timer_delete(timerid);
@@ -214,7 +214,7 @@ void CStartDongleAndSound::read_voice_file(char* pBuffer, int len)
 	int AMBE_fragment_bytes = THEAMBEFRAMEFLDSAMPLESLENGTH;
 	int q_len = len / AMBE_fragment_bytes;
 	int index = 0;
-	map<const char *, CSerialDongle *, cmp_str>::iterator it;
+	map<string, CSerialDongle *>::iterator it;
 	for (it = dongle_map.begin(); it != dongle_map.end();)
 	{
 		it->second->extract_voice((pBuffer + index), AMBE_fragment_bytes);
@@ -240,9 +240,9 @@ void timer_routine(union sigval v)
 	/*ptr->send_any_ambe_to_dongle();
 	ptr->get_read_dongle_data();*/
 	
-	map<const char *, CSerialDongle *, cmp_str> *ptr = (map<const char *, CSerialDongle *, cmp_str> *)v.sival_ptr;
+	map<string, CSerialDongle *> *ptr = (map<string, CSerialDongle *> *)v.sival_ptr;
 	if (ptr->size() == 0)return;
-	static map<const char *, CSerialDongle *, cmp_str>::iterator it = ptr->begin();
+	static map<string, CSerialDongle *>::iterator it = ptr->begin();
 
 	it->second->send_any_ambe_to_dongle();
 	it->second->get_read_dongle_data();
