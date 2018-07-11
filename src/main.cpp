@@ -110,7 +110,7 @@ static void extract_hotplug_info_func(hotplug_info_t *hpug_ptr)
 	if (dongle_count == 4)
 	{
 		sleep(2);
-		log_info("Four dongle has prepared... \n");
+		log_info("One dongle has prepared... \n");
 		m_startdongle->read_voice_file(pBuffer, nread);
 		sleep(7);
 		m_startdongle->run_timer();

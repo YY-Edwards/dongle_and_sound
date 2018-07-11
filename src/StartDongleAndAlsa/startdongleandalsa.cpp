@@ -296,15 +296,17 @@ void CStartDongleAndSound::timer_routine(union sigval v)
 
 	std::lock_guard<std::mutex> guard(pThis->map_mutex_);
 
-	map<string, CSerialDongle *> *ptr = (map<string, CSerialDongle *> *)v.sival_ptr;
-	if (ptr->size() == 0)return;
+	//map<string, CSerialDongle *> *ptr = (map<string, CSerialDongle *> *)v.sival_ptr;
+	//if (ptr->size() == 0)return;
 
 
 	//static map<string, CSerialDongle *>::iterator it = ptr->begin();
-	for (map<string, CSerialDongle *>::iterator it = ptr->begin(); it != ptr->end(); it++)
+	for (map<string, CSerialDongle *>::iterator it = pThis->dongle_map.begin(); it != pThis->dongle_map.end(); it++)
 	{
 		it->second->send_any_ambe_to_dongle();
 		it->second->get_read_dongle_data();
+		usleep(7000);
+		
 	}
 
 	//it->second->send_any_ambe_to_dongle();
