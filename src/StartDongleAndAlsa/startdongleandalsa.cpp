@@ -103,6 +103,10 @@ void CStartDongleAndSound::stop()
 	//timer_delete(timerid);
 	//m_serialdongle.close_dongle();
 
+	if (timerid != 0)
+		timer_delete(timerid);
+	timer_start_flag = false;
+
 	while (dongle_map.size() > 0)
 	{
 		auto it = dongle_map.begin();
@@ -126,9 +130,6 @@ void CStartDongleAndSound::stop()
 		lpszDevice_str_ptr_ = nullptr;
 	}*/
 
-	if (timerid!=0)
-	timer_delete(timerid);
-	timer_start_flag = false;
 
 }
 
