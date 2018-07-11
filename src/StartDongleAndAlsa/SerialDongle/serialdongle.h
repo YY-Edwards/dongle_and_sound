@@ -14,6 +14,9 @@
 #include "syninterface.h"
 #include "fifoqueue.h"
 
+#define AIO_WRITE_CALLBACK
+//#define AIO_WRITE_SIGNAL
+
 
 const int  INTERNALCOMBUFFSIZE	= 2048; 
 const int  DONGLEBAUDRATE		= 230400;
@@ -153,7 +156,11 @@ private:
 
 	//asyn-callback
 	//static void aio_read_completion_hander(sigval_t sigval);
-	static void aio_write_completion_hander(sigval_t sigval);
+	#ifdef AIO_WRITE_CALLBACK 
+		static void aio_write_completion_hander(sigval_t sigval);
+	#else
+		static void aio_read_completion_hander(int signo, siginfo_t *info, void *context);
+	#endif
 	//static void aio_read_completion_hander(int signo, siginfo_t *info, void *context);
 	//
 	//static void aio_write_completion_hander(int signo, siginfo_t *info, void *context);
