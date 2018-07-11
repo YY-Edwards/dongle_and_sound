@@ -37,8 +37,9 @@ enum    ScrambleDirection  {
 
 typedef struct{
 
-	CSerialDongle	*the_pthis;
-	struct aiocb    *w_cbp;//write
+	//CSerialDongle	*the_pthis;
+	void			*the_CSerialDongle_pthis;
+	struct aiocb    *w_cbp_ptr;//write
 
 }aio_hander_t;
 
@@ -71,6 +72,9 @@ const int THEAMBEFRAMEFLDSAMPLESLENGTH = 7;
 
 class CSerialDongle  
 {
+
+	friend class CStartDongleAndSound;//ÉêÃ÷ÓÑÔªÀà
+
 public:
 	CSerialDongle();
 	virtual ~CSerialDongle();

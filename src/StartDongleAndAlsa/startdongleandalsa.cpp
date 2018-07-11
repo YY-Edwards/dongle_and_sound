@@ -362,8 +362,10 @@ void CStartDongleAndSound::dongle_ondata_func(void *ptr, short ptr_len)
 void CStartDongleAndSound::dongle_aio_completion_hander(int signo, siginfo_t *info, void *context)
 {
 
-	struct aiocb  *req;
 	aio_hander_t *my_aio_hander_ptr;
+	struct aiocb  *req;
+	CSerialDongle *this_ptr;
+
 	int           ret;
 	static int nwrited = 0;
 
@@ -373,9 +375,10 @@ void CStartDongleAndSound::dongle_aio_completion_hander(int signo, siginfo_t *in
 		//获取aiocb 结构体的信息
 		//req = (struct aiocb*) info->si_value.sival_ptr;
 		my_aio_hander_ptr = (struct aio_hander_t*) info->si_value.sival_ptr;
-		req = my_aio_hander_ptr->w_cbp;
+		req = my_aio_hander_ptr->w_cbp_ptr;
+		this_ptr = (CSerialDongle *)my_aio_hander_ptr->the_CSerialDongle_pthis;
 
-		if (req->aio_fildes == my_aio_hander_ptr->the_pthis->w_cbp.aio_fildes)//确定信号来自指定的文件描述符
+		//if (req->aio_fildes == this_ptr->w_cbp.aio_fildes)//确定信号来自指定的文件描述符
 		{
 			/*AIO请求完成？*/
 			ret = aio_error(req);
@@ -398,25 +401,25 @@ void CStartDongleAndSound::dongle_aio_completion_hander(int signo, siginfo_t *in
 			case 0://success
 
 				ret = aio_return(req);
-				log_info("fd:%d,[%s aio_write :%d bytes.]\n", req->aio_fildes, my_aio_hander_ptr->the_pthis->dongle_name.c_str(), ret);
+				log_info("fd:%d,[%s aio_write :%d bytes.]\n", req->aio_fildes, this_ptr->dongle_name.c_str(), ret);
 				nwrited += ret;
 				if (nwrited == AMBE3000_AMBE_BYTESINFRAME || nwrited == AMBE3000_PCM_BYTESINFRAME)
 				{
 					log_info("aio_write complete[.]\n");
 					nwrited = 0;
-					if (my_aio_hander_ptr->the_pthis->fWaitingOnPCM){
-						my_aio_hander_ptr->the_pthis->m_PCMBufTail = (my_aio_hander_ptr->the_pthis->m_PCMBufTail + 1) & MAXDONGLEPCMFRAMESMASK;
+					if (this_ptr->fWaitingOnPCM){
+						this_ptr->m_PCMBufTail = (this_ptr->m_PCMBufTail + 1) & MAXDONGLEPCMFRAMESMASK;
 					}
-					if (my_aio_hander_ptr->the_pthis->fWaitingOnAMBE){
-						my_aio_hander_ptr->the_pthis->m_AMBEBufTail = (my_aio_hander_ptr->the_pthis->m_AMBEBufTail + 1) & MAXDONGLEAMBEFRAMESMASK;
+					if (this_ptr->fWaitingOnAMBE){
+						this_ptr->m_AMBEBufTail = (this_ptr->m_AMBEBufTail + 1) & MAXDONGLEAMBEFRAMESMASK;
 					}
 
-					my_aio_hander_ptr->the_pthis->fWaitingOnWrite = false;
-					my_aio_hander_ptr->the_pthis->fWaitingOnPCM = false;
-					my_aio_hander_ptr->the_pthis->fWaitingOnAMBE = false;
+					this_ptr->fWaitingOnWrite = false;
+					this_ptr->fWaitingOnPCM = false;
+					this_ptr->fWaitingOnAMBE = false;
 
-					my_aio_hander_ptr->the_pthis->send_index++;
-					log_info("%s send ambe index:%d\n", my_aio_hander_ptr->the_pthis->dongle_name.c_str(), my_aio_hander_ptr->the_pthis->send_index);
+					this_ptr->send_index++;
+					log_info("%s send ambe index:%d\n", this_ptr->dongle_name.c_str(), this_ptr->send_index);
 				}
 
 				break;
@@ -424,10 +427,10 @@ void CStartDongleAndSound::dongle_aio_completion_hander(int signo, siginfo_t *in
 				break;
 			}
 		}
-		else
+		/*else
 		{
 			log_warning("note,other fd: %d \n", req->aio_fildes);
-		}
+		}*/
 	}
 	else
 	{
