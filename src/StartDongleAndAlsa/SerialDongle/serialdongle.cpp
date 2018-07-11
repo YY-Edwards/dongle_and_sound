@@ -136,7 +136,7 @@ int	CSerialDongle::open_dongle(const char *lpsz_Device, void(*func_ptr)(int sign
 
 
 		//传入CSerialDongle对象指针
-		w_cbp.aio_sigevent.sigev_value.sival_ptr = &pThis;
+		w_cbp.aio_sigevent.sigev_value.sival_ptr = pThis;
 
 		//传入aiocb 结构体
 		//w_cbp.aio_sigevent.sigev_value.sival_ptr = &w_cbp;
@@ -1084,7 +1084,7 @@ void CSerialDongle::get_read_dongle_data()
 			DongleRxDataCallBackFunc(pBuffer, THEPCMFRAMEFLDSAMPLESLENGTH);//回调
 			//dataType = 0;
 			recv_index++;
-			log_info("save pcm-msg index:%d\n", recv_index);
+			log_info("%s save pcm-msg index:%d\n", dongle_name.c_str(), recv_index);
 		}
 		//else//ambe
 		//{

@@ -272,7 +272,7 @@ void CStartDongleAndSound::dongle_ondata_func(void *ptr, short ptr_len)
 			{
 				log_warning("write pcm-voice uncompleted:%ld\r\n", ret);
 			}
-			log_info("save pcm data okay.\n");
+			//log_info("save pcm data okay.\n");
 		}
 	}
 
@@ -362,8 +362,8 @@ void CStartDongleAndSound::dongle_ondata_func(void *ptr, short ptr_len)
 void CStartDongleAndSound::dongle_aio_completion_hander(int signo, siginfo_t *info, void *context)
 {
 
-	struct aiocb  *req;
-	CSerialDongle *this_ptr;
+	struct aiocb  *req = NULL;
+	CSerialDongle *this_ptr = NULL;
 
 	int           ret;
 	static int nwrited = 0;
