@@ -92,7 +92,7 @@ static void extract_hotplug_info_func(hotplug_info_t *hpug_ptr)
 				sleep(1);
 				m_startdongle->stop(temp_ptr->devname.c_str());
 				if (dongle_count>0)dongle_count--;
-				m_startdongle->run_timer();
+				if (dongle_count != 0)m_startdongle->run_timer();
 			}
 
 

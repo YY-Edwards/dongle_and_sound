@@ -48,11 +48,15 @@ private:
 	//std::string *lpszDevice_str_ptr_;
 	//char * lpszDevice_str_ptr_;
 
+
+	std::mutex						map_mutex_;
 	map<string, CSerialDongle *> dongle_map;
+
+	static void timer_routine(union sigval v);
 
 };
 
-void timer_routine(union sigval v);
+//void timer_routine(union sigval v);
 
 
 

@@ -107,6 +107,7 @@ void CStartDongleAndSound::stop()
 		timer_delete(timerid);
 	timer_created_flag = false;
 
+	std::lock_guard<std::mutex> guard(map_mutex_);
 	while (dongle_map.size() > 0)
 	{
 		auto it = dongle_map.begin();
@@ -135,7 +136,7 @@ void CStartDongleAndSound::stop()
 
 void CStartDongleAndSound::stop(const char *device)//stop one dongle
 {
-	
+	std::lock_guard<std::mutex> guard(map_mutex_);
 	auto it = dongle_map.find(device);
 	if (it != dongle_map.end())
 	{
@@ -158,7 +159,7 @@ void CStartDongleAndSound::stop(const char *device)//stop one dongle
 void CStartDongleAndSound::run_timer()
 {
 
-
+	if (!timer_created_flag)return;
 	//timer();
 
 	// XXX int timer_settime(timer_t timerid, int flags, const struct itimerspec *new_value,struct itimerspec *old_value);  
@@ -187,7 +188,7 @@ void CStartDongleAndSound::run_timer()
 
 void CStartDongleAndSound::pause_timer()
 {
-
+	if (!timer_created_flag)return;
 	//timer();
 
 	// XXX int timer_settime(timer_t timerid, int flags, const struct itimerspec *new_value,struct itimerspec *old_value);  
@@ -287,23 +288,32 @@ void CStartDongleAndSound::read_voice_file(char* pBuffer, int len)
 	//m_serialdongle.extract_voice(pBuffer, len);
 }
 
-void timer_routine(union sigval v)
+void CStartDongleAndSound::timer_routine(union sigval v)
 {
 	//CSerialDongle *ptr = (CSerialDongle*)v.sival_ptr;
 	/*ptr->send_any_ambe_to_dongle();
 	ptr->get_read_dongle_data();*/
-	
+
+	std::lock_guard<std::mutex> guard(pThis->map_mutex_);
+
 	map<string, CSerialDongle *> *ptr = (map<string, CSerialDongle *> *)v.sival_ptr;
 	if (ptr->size() == 0)return;
-	static map<string, CSerialDongle *>::iterator it = ptr->begin();
 
-	it->second->send_any_ambe_to_dongle();
-	it->second->get_read_dongle_data();
-	it++;
-	if (it == ptr->end())//Ñ­»·
+
+	//static map<string, CSerialDongle *>::iterator it = ptr->begin();
+	for (map<string, CSerialDongle *>::iterator it = ptr->begin(); it != ptr->end(); it++)
 	{
-		it = ptr->begin();
+		it->second->send_any_ambe_to_dongle();
+		it->second->get_read_dongle_data();
 	}
+
+	//it->second->send_any_ambe_to_dongle();
+	//it->second->get_read_dongle_data();
+	//it++;
+	//if (it == ptr->end())//Ñ­»·
+	//{
+	//	it = ptr->begin();
+	//}
 
 	
 
