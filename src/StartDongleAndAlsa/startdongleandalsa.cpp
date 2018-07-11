@@ -362,7 +362,6 @@ void CStartDongleAndSound::dongle_ondata_func(void *ptr, short ptr_len)
 void CStartDongleAndSound::dongle_aio_completion_hander(int signo, siginfo_t *info, void *context)
 {
 
-	aio_hander_t *my_aio_hander_ptr;
 	struct aiocb  *req;
 	CSerialDongle *this_ptr;
 
@@ -374,9 +373,8 @@ void CStartDongleAndSound::dongle_aio_completion_hander(int signo, siginfo_t *in
 		//log_info("w-signal code:%d\n", info->si_code); 
 		//获取aiocb 结构体的信息
 		//req = (struct aiocb*) info->si_value.sival_ptr;
-		my_aio_hander_ptr = (aio_hander_t*) info->si_value.sival_ptr;
-		req = my_aio_hander_ptr->w_cbp_ptr;
-		this_ptr = (CSerialDongle *)my_aio_hander_ptr->the_CSerialDongle_pthis;
+		this_ptr = (CSerialDongle *)info->si_value.sival_ptr;
+		req = &(this_ptr->w_cbp);
 
 		//if (req->aio_fildes == this_ptr->w_cbp.aio_fildes)//确定信号来自指定的文件描述符
 		{

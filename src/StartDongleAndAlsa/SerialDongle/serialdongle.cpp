@@ -135,11 +135,8 @@ int	CSerialDongle::open_dongle(const char *lpsz_Device, void(*func_ptr)(int sign
 		w_cbp.aio_sigevent.sigev_signo = SIGIO;
 
 
-		aio_hander_info.w_cbp_ptr = &w_cbp;
-		aio_hander_info.the_CSerialDongle_pthis = &pThis;
-
-		//传入aio_hander_t结构体
-		w_cbp.aio_sigevent.sigev_value.sival_ptr = &aio_hander_info;
+		//传入CSerialDongle对象指针
+		w_cbp.aio_sigevent.sigev_value.sival_ptr = &pThis;
 
 		//传入aiocb 结构体
 		//w_cbp.aio_sigevent.sigev_value.sival_ptr = &w_cbp;

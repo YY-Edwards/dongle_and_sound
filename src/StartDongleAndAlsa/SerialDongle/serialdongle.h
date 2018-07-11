@@ -35,14 +35,6 @@ enum    ScrambleDirection  {
 };
 
 
-typedef struct{
-
-	//CSerialDongle	*the_pthis;
-	void			*the_CSerialDongle_pthis;
-	struct aiocb    *w_cbp_ptr;//write
-
-}aio_hander_t;
-
 
 //Serial Events (two different arrays).
 const int SERIAL_TIMEOUT = 1;
@@ -98,8 +90,6 @@ private:
 
 
 	static CSerialDongle *pThis;
-
-	aio_hander_t aio_hander_info;
 
 	std::string dongle_name;
 
