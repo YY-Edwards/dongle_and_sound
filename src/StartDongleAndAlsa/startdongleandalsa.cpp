@@ -156,7 +156,7 @@ void CStartDongleAndSound::stop(const char *device)//stop one dongle
 
 }
 
-void CStartDongleAndSound::run_timer()
+void CStartDongleAndSound::run_timer(int time_s, int time_ms)
 {
 
 	if (!timer_created_flag)return;
@@ -170,10 +170,10 @@ void CStartDongleAndSound::run_timer()
 	//第一次间隔it.it_value这么长,以后每次都是it.it_interval这么长,就是说it.it_value变0的时候会装载it.it_interval的值  
 	//it.it_interval可以理解为周期  
 	struct itimerspec it;
-	it.it_interval.tv_sec = 0;
-	it.it_interval.tv_nsec = 20000000;//间隔20ms
-	it.it_value.tv_sec = 0;
-	it.it_value.tv_nsec = 20000000;
+	it.it_interval.tv_sec = time_s;
+	it.it_interval.tv_nsec = time_ms * 1000000;//间隔20ms
+	it.it_value.tv_sec = time_s;
+	it.it_value.tv_nsec = time_ms * 1000000;
 
 	if (timer_settime(timerid, 0, &it, NULL) == -1)
 	{

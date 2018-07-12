@@ -15,7 +15,7 @@
 #include "fifoqueue.h"
 
 //#define AIO_WRITE_CALLBACK
-#define AIO_WRITE_SIGNAL
+//#define AIO_WRITE_SIGNAL
 
 
 const int  INTERNALCOMBUFFSIZE	= 2048; 

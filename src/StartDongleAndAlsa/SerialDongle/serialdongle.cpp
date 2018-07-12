@@ -436,7 +436,7 @@ int CSerialDongle::SerialRxThreadFunc()
 		}
 		else
 		{
-			if ((ret = aio_error(&r_cbp)) != 0)
+			if ((ret = aio_error(&r_cbp)) != 0)//此处应该不会发生请求尚未完成的状态
 			{
 				log_info("qio_error() ret:%d", ret);
 				if (ret == -1)
@@ -511,13 +511,19 @@ int CSerialDongle::SerialTxThreadFunc()
 	int  snapPCMBufHead;
 	int  snapAMBEBufHead;
 	send_index = 0;
+	struct aiocb*   aiocb_list[1];
+	struct timespec timeout;
+	timeout.tv_sec = 0;
+	timeout.tv_nsec = 50* 1000 * 1000;//ms
+	aiocb_list[0] = &w_cbp;
+	int nwrited = 0;
 
 	do
 	{
 		ret = tx_serial_event_cond->CondWait(0);
 		{
 
-			std::lock_guard<std::mutex> guard(m_aio_syn_mutex_);
+			//std::lock_guard<std::mutex> guard(m_aio_syn_mutex_);
 
 			switch (ret)
 			{
@@ -555,15 +561,94 @@ int CSerialDongle::SerialTxThreadFunc()
 					fWaitingOnAMBE = true;
 					fWaitingOnWrite = true;
 					log_info("%s send ambe buff:\n", dongle_name.c_str());
-					auto aio_ret = aio_write_file(&w_cbp, m_wComm, &(m_AMBE_CirBuff[m_AMBEBufTail].All[0]), AMBE3000_AMBE_BYTESINFRAME);
-					//m_usartwrap.send(&(m_AMBE_CirBuff[m_AMBEBufTail].All[0]), AMBE3000_AMBE_BYTESINFRAME);
-					if (aio_ret < 0)//Some dreadful error occurred.
-					{
-						purge_dongle(m_wComm, TCOFLUSH);//刷新写入的数据
-						fWaitingOnWrite = false;
-						fWaitingOnPCM = false;
-						fWaitingOnAMBE = false;
-					}
+
+					do
+					{				
+						auto aio_ret = aio_write_file(&w_cbp, m_wComm, &(m_AMBE_CirBuff[m_AMBEBufTail].All[0 + nwrited]), AMBE3000_AMBE_BYTESINFRAME - nwrited);
+						//m_usartwrap.send(&(m_AMBE_CirBuff[m_AMBEBufTail].All[0]), AMBE3000_AMBE_BYTESINFRAME);
+						if (aio_ret < 0)//Some dreadful error occurred.
+						{
+							purge_dongle(m_wComm, TCOFLUSH);//刷新写入的数据
+							fWaitingOnWrite = false;
+							fWaitingOnPCM = false;
+							fWaitingOnAMBE = false;
+							break;
+						}
+						//超时阻塞，直到请求完成才会继续执行后面的语句
+						aio_ret = aio_suspend((const struct aiocb* const*)aiocb_list, 1, &timeout);
+						if (aio_ret != 0)
+						{
+							if (errno == EAGAIN)//timeout
+							{
+								log_warning("[w_cbp],aio_suspend() EAGAIN:timeout\n");
+								purge_dongle(m_wComm, TCOFLUSH);//刷新写入的数据
+								fWaitingOnWrite = false;
+								fWaitingOnPCM = false;
+								fWaitingOnAMBE = false;
+								break;
+							}
+							else
+							{
+								log_warning("[w_cbp],aio_suspend() ret:%d, errno:%d, %s\n", ret, errno, strerror(errno));
+								break;
+							}
+
+						}
+						else
+						{
+							aio_ret = aio_error(&w_cbp);
+
+							log_info("\n\n");
+							switch (ret)
+							{
+							case EINPROGRESS://working，no should happen,but must check.
+								log_info("aio write is EINPROGRESS.\n");
+								break;
+
+							case ECANCELED://cancelled
+								log_info("aio write is ECANCELLED.\n");
+								break;
+
+							case -1://failure
+								log_info("aio write is failure, errno:%s\n", strerror(errno));
+								purge_dongle(m_wComm, TCOFLUSH);//刷新写入的数据
+								fWaitingOnWrite = false;
+								fWaitingOnPCM = false;
+								fWaitingOnAMBE = false;
+								break;
+
+							case 0://success
+
+								aio_ret = aio_return(&w_cbp);
+								log_info("fd:%d,[%s aio_write :%d bytes.]\n", w_cbp.aio_fildes, dongle_name.c_str(), aio_ret);
+								nwrited += ret;
+								if (nwrited == AMBE3000_AMBE_BYTESINFRAME || nwrited == AMBE3000_PCM_BYTESINFRAME)
+								{
+									log_info("aio_write complete[.]\n");
+									nwrited = 0;//Successful Tx Complete.
+									if (fWaitingOnPCM == true){
+										m_PCMBufTail = (m_PCMBufTail + 1) & MAXDONGLEPCMFRAMESMASK;
+									}
+									if (fWaitingOnAMBE == true){
+										m_AMBEBufTail = (m_AMBEBufTail + 1) & MAXDONGLEAMBEFRAMESMASK;
+									}
+
+									fWaitingOnWrite = false;
+									fWaitingOnPCM = false;
+									fWaitingOnAMBE = false;
+
+									send_index++;
+									log_info("%s send ambe index:%d\n", dongle_name.c_str(), send_index);
+								}
+
+								break;
+							default:
+								break;
+							}//end of aio_error() switch
+
+						}
+					} while ((fWaitingOnWrite == true) && (!m_PleaseStopSerial));//end of send completed
+
 				}
 				break;
 
@@ -615,6 +700,7 @@ int CSerialDongle::SerialTxThreadFunc()
 //}
 
 
+#if 0
 #ifdef AIO_WRITE_SIGNAL 
 
 void CSerialDongle::aio_write_completion_hander(int signo, siginfo_t *info, void *context)
@@ -705,6 +791,8 @@ void CSerialDongle::aio_write_completion_hander(sigval_t sigval)//must be static
 
 
 }
+
+#endif
 
 void CSerialDongle::set_rx_serial_event()
 {

@@ -18,7 +18,7 @@ public:
 	void stop();//stop tatol dongle and alsa
 	void stop(const char *);//stop one dongle
 	void read_voice_file(char* pBuffer, int len);
-	void run_timer();//启动定时器
+	void run_timer(int time_s = 0, int time_ms = 20);//启动定时器ms
 	void pause_timer();//停止定时器。
 	//void get_voice_cache_from_file(const char* file_name);
 

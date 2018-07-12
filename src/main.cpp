@@ -107,13 +107,13 @@ static void extract_hotplug_info_func(hotplug_info_t *hpug_ptr)
 	{
 		log_warning("find no dongle!\n");
 	}
-	if (dongle_count == 4)
+	if (dongle_count == 2)
 	{
 		sleep(2);
 		log_info("Four dongle has prepared... \n");
 		m_startdongle->read_voice_file(pBuffer, nread);
 		sleep(7);
-		m_startdongle->run_timer();
+		m_startdongle->run_timer(3, 20);//3s£¬20ms
 	}
 
 }
