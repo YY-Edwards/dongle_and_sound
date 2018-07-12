@@ -42,9 +42,9 @@ const int SERIAL_TICKLE = 0;
 
 //I've made this fairly long for debugging. It need not be.
 //Must be a power of 2.
-const int  MAXDONGLEAMBEFRAMES       = 2048; //About 41 Seconds.
+const int  MAXDONGLEAMBEFRAMES       = 4096; //About 82 Seconds.
 const int  MAXDONGLEAMBEFRAMESMASK   = MAXDONGLEAMBEFRAMES - 1;
-const int  MAXDONGLEPCMFRAMES        = 2048; //About 41 Seconds.
+const int  MAXDONGLEPCMFRAMES        = 4096; //About 82 Seconds.
 const int  MAXDONGLEPCMFRAMESMASK    = MAXDONGLEPCMFRAMES - 1;
 
 
