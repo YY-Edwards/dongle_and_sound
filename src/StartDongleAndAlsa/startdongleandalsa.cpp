@@ -265,15 +265,23 @@ void CStartDongleAndSound::timer()//用来定时(20ms)触发串口读，写数据，并将CSeria
 
 void CStartDongleAndSound::read_voice_file(char* pBuffer, int len)
 {
-	int AMBE_fragment_bytes = THEAMBEFRAMEFLDSAMPLESLENGTH;
-	int q_len = len / AMBE_fragment_bytes;
+	//int AMBE_fragment_bytes = THEAMBEFRAMEFLDSAMPLESLENGTH;
+	//int q_len = len / AMBE_fragment_bytes;
 	int index = 0;
+	int read_len = 0;
+	int left_len = len;
 	map<string, CSerialDongle *>::iterator it;
 	for (it = dongle_map.begin(); it != dongle_map.end();)
 	{
-		it->second->extract_voice((pBuffer + index), AMBE_fragment_bytes);
-		index += AMBE_fragment_bytes;
-		if (index >= len)break;
+
+		read_len = (left_len >= THEAMBEFRAMEFLDSAMPLESLENGTH) ? THEAMBEFRAMEFLDSAMPLESLENGTH : left_len;
+		if (read_len <= 0)break;
+
+		it->second->extract_voice((pBuffer + index), read_len);
+
+		index += read_len;
+		left_len -= read_len;
+
 		it++;
 		if (it == dongle_map.end())//循环
 		{
@@ -305,7 +313,7 @@ void CStartDongleAndSound::timer_routine(union sigval v)
 	{
 		it->second->send_any_ambe_to_dongle();
 		it->second->get_read_dongle_data();
-		usleep(7000);
+		usleep(5000);
 		
 	}
 
@@ -459,6 +467,7 @@ void CStartDongleAndSound::dongle_aio_completion_hander(int signo, siginfo_t *in
 
 			case -1://failure
 				log_info("aio write is failure, errno:%s\n", strerror(errno));
+				this_ptr->purge_dongle(this_ptr->m_wComm, TCOFLUSH);//刷新写入的数据
 				break;
 
 			case 0://success
@@ -469,11 +478,11 @@ void CStartDongleAndSound::dongle_aio_completion_hander(int signo, siginfo_t *in
 				if (nwrited == AMBE3000_AMBE_BYTESINFRAME || nwrited == AMBE3000_PCM_BYTESINFRAME)
 				{
 					log_info("aio_write complete[.]\n");
-					nwrited = 0;
-					if (this_ptr->fWaitingOnPCM){
+					nwrited = 0;//Successful Tx Complete.
+					if (this_ptr->fWaitingOnPCM == true){
 						this_ptr->m_PCMBufTail = (this_ptr->m_PCMBufTail + 1) & MAXDONGLEPCMFRAMESMASK;
 					}
-					if (this_ptr->fWaitingOnAMBE){
+					if (this_ptr->fWaitingOnAMBE == true){
 						this_ptr->m_AMBEBufTail = (this_ptr->m_AMBEBufTail + 1) & MAXDONGLEAMBEFRAMESMASK;
 					}
 

@@ -537,7 +537,7 @@ int CSerialDongle::SerialTxThreadFunc()
 					m_bPleasePurgePCM = false;
 				}
 
-				if (fWaitingOnWrite){//Previous write did not complete.
+				if (fWaitingOnWrite == true){//Previous write did not complete.
 					//Try some errorrecovery.
 					log_warning("%s:Previous write did not complete!!!\n", dongle_name.c_str());
 					purge_dongle(m_wComm, TCOFLUSH);//刷新写入的数据
@@ -547,15 +547,20 @@ int CSerialDongle::SerialTxThreadFunc()
 					break;
 				}
 
-
-				//Previous write did not complete.
 				snapAMBEBufHead = m_AMBEBufHead;		//Try AMBE
 				if (snapAMBEBufHead != m_AMBEBufTail){  //AMBE to send
 					fWaitingOnAMBE = true;
 					fWaitingOnWrite = true;
 					log_info("%s send ambe buff:\n", dongle_name.c_str());
-					aio_write_file(&w_cbp, m_wComm, &(m_AMBE_CirBuff[m_AMBEBufTail].All[0]), AMBE3000_AMBE_BYTESINFRAME);
+					auto aio_ret = aio_write_file(&w_cbp, m_wComm, &(m_AMBE_CirBuff[m_AMBEBufTail].All[0]), AMBE3000_AMBE_BYTESINFRAME);
 					//m_usartwrap.send(&(m_AMBE_CirBuff[m_AMBEBufTail].All[0]), AMBE3000_AMBE_BYTESINFRAME);
+					if (aio_ret < 0)//Some dreadful error occurred.
+					{
+						purge_dongle(m_wComm, TCOFLUSH);//刷新写入的数据
+						fWaitingOnWrite = false;
+						fWaitingOnPCM = false;
+						fWaitingOnAMBE = false;
+					}
 				}
 				break;
 
