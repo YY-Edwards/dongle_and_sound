@@ -38,7 +38,8 @@ CSerialDongle::~CSerialDongle()
 	log_info("Destory: CSerialDongle\n");
 }
 
-int	CSerialDongle::open_dongle(const char *lpsz_Device, void(*func_ptr)(int signo, siginfo_t *info, void *context))
+//int	CSerialDongle::open_dongle(const char *lpsz_Device, void(*func_ptr)(int signo, siginfo_t *info, void *context))
+int	CSerialDongle::open_dongle(const char *lpsz_Device)
 {
 	m_ParserState = FIND_START;
 	m_RxMsgLength = 0;
@@ -145,7 +146,7 @@ int	CSerialDongle::open_dongle(const char *lpsz_Device, void(*func_ptr)(int sign
 		//将信号与信号处理函数绑定
 		sigaction(SIGIO, &sig_w_act, NULL);
 
-#else//AIO_WRITE_CALLBACK
+#elif AIO_WRITE_CALLBACK
 
 
 		////用线程回调

@@ -72,7 +72,9 @@ public:
 	virtual ~CSerialDongle();
 
 	//Called from Dlg/User.
-	int		open_dongle(const char *lpsz_Devic, void(*func_ptr)(int signo, siginfo_t *info, void *context));
+	//int		open_dongle(const char *lpsz_Devic, void(*func_ptr)(int signo, siginfo_t *info, void *context));
+	int		open_dongle(const char *lpsz_Devic);
+
 	void	send_dongle_initialization(void);//send control packets
 	void	close_dongle(void);
 

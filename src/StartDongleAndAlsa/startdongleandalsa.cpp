@@ -68,7 +68,8 @@ bool CStartDongleAndSound::start(const char *lpszDevice, const char *pcm_name)
 	if (m_new_dongle_ptr != nullptr){
 
 		dongle_map[lpszDevice] = m_new_dongle_ptr;//insert map
-		result = m_new_dongle_ptr->open_dongle(lpszDevice, dongle_aio_completion_hander);
+		//result = m_new_dongle_ptr->open_dongle(lpszDevice, dongle_aio_completion_hander);
+		result = m_new_dongle_ptr->open_dongle(lpszDevice);
 		if (result != true)
 		{
 			log_warning("open dongle failure!\n");
