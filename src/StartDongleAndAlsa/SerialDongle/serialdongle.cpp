@@ -514,11 +514,13 @@ int CSerialDongle::SerialTxThreadFunc()
 
 	do
 	{
-		std::lock_guard<std::mutex> guard(m_aio_syn_mutex_);
 		ret = tx_serial_event_cond->CondWait(0);
-
-		switch (ret)
 		{
+
+			std::lock_guard<std::mutex> guard(m_aio_syn_mutex_);
+
+			switch (ret)
+			{
 			case SERIAL_TIMEOUT:
 				log_warning("tx-timeout:should no happen,but must check!");
 				break;
@@ -527,7 +529,7 @@ int CSerialDongle::SerialTxThreadFunc()
 				//Something may be ready to send.
 				reset_tx_serial_event();
 				if (m_PleaseStopSerial){
-					break; 
+					break;
 				}
 				if (true == m_bPleasePurgeAMBE){
 					m_AMBEBufTail = m_AMBEBufHead;
@@ -567,7 +569,8 @@ int CSerialDongle::SerialTxThreadFunc()
 
 			default:
 				break;
-		}//End of Event Switch.
+			}//End of Event Switch.
+		}
 
 	} while (!m_PleaseStopSerial);
 

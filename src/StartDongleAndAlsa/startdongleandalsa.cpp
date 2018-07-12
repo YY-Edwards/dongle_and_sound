@@ -454,6 +454,13 @@ void CStartDongleAndSound::dongle_aio_completion_hander(int signo, siginfo_t *in
 			/*AIO请求完成？*/
 			ret = aio_error(req);
 
+			//信号处理函数与主函数之间的死锁
+			//当主函数访问临界资源时，通常需要加锁，如果主函数在访问临界区时，给临界资源上锁，此时发生了一个信号，
+			//那么转入信号处理函数，如果此时信号处理函数也对临界资源进行访问，那么信号处理函数也会加锁，
+			//由于主程序持有锁，信号处理程序等待主程序释放锁。又因为信号处理函数已经抢占了主函数，
+			//因此，主函数在信号处理函数结束之前不能运行。因此，必然造成死锁。
+			/*信号处理相当于软中断，会暂停所有的线程执行*/
+			/**/
 			std::lock_guard<std::mutex> guard(this_ptr->m_aio_syn_mutex_);
 			log_info("\n\n");
 			//log_info("aio write status:%d\n", ret);

@@ -31,7 +31,7 @@ CStartDongleAndSound *m_startdongle = nullptr;
 
 static void  signal_handler(int sig_num) {
 	// Reinstantiate signal handler
-	signal(sig_num, signal_handler);
+	//signal(sig_num, signal_handler);//早期的内核中不可靠信号:进程每次处理信号后，就将对信号的响应设置为默认动作
 
 #ifndef _WIN32
 	// Do not do the trick with ignoring SIGCHLD, cause not all OSes (e.g. QNX)
@@ -107,10 +107,10 @@ static void extract_hotplug_info_func(hotplug_info_t *hpug_ptr)
 	{
 		log_warning("find no dongle!\n");
 	}
-	if (dongle_count == 2)
+	if (dongle_count == 4)
 	{
 		sleep(2);
-		log_info("Two dongle has prepared... \n");
+		log_info("Four dongle has prepared... \n");
 		m_startdongle->read_voice_file(pBuffer, nread);
 		sleep(7);
 		m_startdongle->run_timer();
@@ -196,7 +196,7 @@ int main(int argc, char** argv)
 		else
 		{
 			usleep(900 * 1000);
-			//log_info("...main-process wating...\r\n");
+			log_info("...main-process wating...\r\n");
 		}
 	}
 	log_info("exit main-process...\r\n");
