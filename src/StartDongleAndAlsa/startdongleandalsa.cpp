@@ -173,8 +173,8 @@ void CStartDongleAndSound::run_timer(int time_s, int time_ms)
 	struct itimerspec it;
 	it.it_interval.tv_sec = time_s;
 	it.it_interval.tv_nsec = time_ms * 1000000;//¼ä¸ô20ms
-	it.it_value.tv_sec = time_s;
-	it.it_value.tv_nsec = time_ms * 1000000;
+	it.it_value.tv_sec = 1;
+	it.it_value.tv_nsec = 0;
 
 	if (timer_settime(timerid, 0, &it, NULL) == -1)
 	{

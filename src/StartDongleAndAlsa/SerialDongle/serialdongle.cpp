@@ -450,9 +450,9 @@ int CSerialDongle::SerialRxThreadFunc()
 			{
 				//请求操作完成，获取返回值
 				read_nbytes = aio_return(&r_cbp);
-				log_info("%s recv pcm:%d bytes\n", dongle_name.c_str(), read_nbytes);
 				if (read_nbytes > 0)
 				{
+					log_info("%s recv pcm:%d bytes\n", dongle_name.c_str(), read_nbytes);
 					//assemble:注意是同步解析。如需要异步，则用环形队列作缓冲。
 					AssembledCount = AssembleMsg(read_nbytes, &dwBytesConsumed);
 
@@ -600,7 +600,7 @@ int CSerialDongle::SerialTxThreadFunc()
 							aio_ret = aio_error(&w_cbp);
 
 							log_info("\n\n");
-							switch (ret)
+							switch (aio_ret)
 							{
 							case EINPROGRESS://working，no should happen,but must check.
 								log_info("aio write is EINPROGRESS.\n");
@@ -622,7 +622,7 @@ int CSerialDongle::SerialTxThreadFunc()
 
 								aio_ret = aio_return(&w_cbp);
 								log_info("fd:%d,[%s aio_write :%d bytes.]\n", w_cbp.aio_fildes, dongle_name.c_str(), aio_ret);
-								nwrited += ret;
+								nwrited += aio_ret;
 								if (nwrited == AMBE3000_AMBE_BYTESINFRAME || nwrited == AMBE3000_PCM_BYTESINFRAME)
 								{
 									log_info("aio_write complete[.]\n");

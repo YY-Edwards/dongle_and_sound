@@ -71,8 +71,8 @@ static void extract_hotplug_info_func(hotplug_info_t *hpug_ptr)
 		log_info("\r\n");
 		log_info("find the dongle device\n");
 		log_info("action:%s\n", temp_ptr->action.c_str());
-		log_info("devpath:%s\n", temp_ptr->path.c_str());
-		log_info("devname:%s\n", temp_ptr->devname.c_str());
+		//log_info("devpath:%s\n", temp_ptr->path.c_str());
+		//log_info("devname:%s\n", temp_ptr->devname.c_str());
 		if (temp_ptr->action.compare(action_add) == 0)
 		{
 			if (m_startdongle != nullptr)
@@ -107,13 +107,13 @@ static void extract_hotplug_info_func(hotplug_info_t *hpug_ptr)
 	{
 		log_warning("find no dongle!\n");
 	}
-	if (dongle_count == 2)
+	if (dongle_count == 4)
 	{
 		sleep(2);
 		log_info("Four dongle has prepared... \n");
 		m_startdongle->read_voice_file(pBuffer, nread);
 		sleep(7);
-		m_startdongle->run_timer(3, 20);//3s£¬20ms
+		m_startdongle->run_timer(0, 20);//3s£¬20ms
 	}
 
 }
