@@ -514,6 +514,7 @@ int CSerialDongle::SerialTxThreadFunc()
 
 	do
 	{
+		std::lock_guard<std::mutex> guard(m_aio_syn_mutex_);
 		ret = tx_serial_event_cond->CondWait(0);
 
 		switch (ret)

@@ -453,6 +453,8 @@ void CStartDongleAndSound::dongle_aio_completion_hander(int signo, siginfo_t *in
 		{
 			/*AIO«Î«ÛÕÍ≥…£ø*/
 			ret = aio_error(req);
+
+			std::lock_guard<std::mutex> guard(this_ptr->m_aio_syn_mutex_);
 			log_info("\n\n");
 			//log_info("aio write status:%d\n", ret);
 			switch (ret)

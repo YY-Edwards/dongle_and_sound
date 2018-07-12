@@ -92,6 +92,8 @@ private:
 	static CSerialDongle *pThis;
 
 	std::string dongle_name;
+	std::mutex	m_aio_syn_mutex_;
+
 
 	bool	m_PleaseStopSerial;
 
