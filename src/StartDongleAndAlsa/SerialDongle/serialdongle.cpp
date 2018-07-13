@@ -57,8 +57,8 @@ int	CSerialDongle::open_dongle(const char *lpsz_Device)
 	dongle_name = lpsz_Device;
 
 	log_info("new dongle name:%s \n", dongle_name.c_str());
-	auto r_ret = m_usartwrap.init_usart_config(lpsz_Device, O_RDONLY, DONGLEBAUDRATE, DONGLEBITS, DONGLESTOP, DONGLEPARITY);
-	auto w_ret = m_usartwrap.init_usart_config(lpsz_Device, O_WRONLY, DONGLEBAUDRATE, DONGLEBITS, DONGLESTOP, DONGLEPARITY);
+	auto r_ret = m_usartwrap.init_usart_config(lpsz_Device, O_RDONLY | O_NOCTTY, DONGLEBAUDRATE, DONGLEBITS, DONGLESTOP, DONGLEPARITY);
+	auto w_ret = m_usartwrap.init_usart_config(lpsz_Device, O_WRONLY | O_NOCTTY, DONGLEBAUDRATE, DONGLEBITS, DONGLESTOP, DONGLEPARITY);
 	if ((r_ret<0) || (w_ret<0))
 	{
 		log_warning("open usart failed\n");
@@ -217,6 +217,24 @@ void CSerialDongle::send_dongle_initialization(void)//send control packets
 
 }
 
+void  CSerialDongle::get_dongle_version(char *prod_id, char *version_string)
+{
+
+
+	bool result;
+
+	m_dongle_control_frame_.base.Sync = AMBE3000_SYNC_BYTE;
+	m_dongle_control_frame_.base.LengthH = 0x00;
+	m_dongle_control_frame_.base.LengthL = 0x04;
+	m_dongle_control_frame_.base.Type = AMBE3000_CCP_TYPE_BYTE;
+	m_dongle_control_frame_.base.empty[0] = AMBE3000_CCP_PRODID_BYTE;
+	m_dongle_control_frame_.base.empty[1] = AMBE3000_CCP_VERSTRING_BYTE;
+	m_dongle_control_frame_.base.empty[2] = AMBE3000_PARITY_TYPE_BYTE;
+	m_dongle_control_frame_.base.empty[3] = CheckSum(&m_dongle_control_frame_);
+
+	result = SendDVSIMsg(&m_dongle_control_frame_);
+
+}
 
 void CSerialDongle::close_dongle(void)
 {
@@ -391,7 +409,7 @@ void *CSerialDongle::SerialRxThread(void* p)//must be static since is thread
 }
 int CSerialDongle::SerialRxThreadFunc()
 {
-	log_info("SerialRxThreadFunc is running, pid:%ld", syscall(SYS_gettid));
+	log_info("SerialRxThreadFunc is running, pid:%ld \n", syscall(SYS_gettid));
 	int dwBytesConsumed;
 	int  AssembledCount;
 	auto read_nbytes = 0;
@@ -439,7 +457,7 @@ int CSerialDongle::SerialRxThreadFunc()
 		{
 			if ((ret = aio_error(&r_cbp)) != 0)//此处应该不会发生请求尚未完成的状态
 			{
-				log_info("qio_error() ret:%d", ret);
+				log_warning("read aio_error() ret:%d", ret);
 				if (ret == -1 || ret == EIO)
 				{
 					log_warning("qio_error() errno:%s\n", strerror(errno));
@@ -508,7 +526,7 @@ void *CSerialDongle::SerialTxThread(void* p)//must be static since is thread
 }
 int CSerialDongle::SerialTxThreadFunc()
 {
-	log_info("SerialTxThreadFunc is running, pid:%ld", syscall(SYS_gettid));
+	log_info("SerialTxThreadFunc is running, pid:%ld \n", syscall(SYS_gettid));
 	auto ret = 0;
 	int  snapPCMBufHead;
 	int  snapAMBEBufHead;

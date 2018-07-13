@@ -76,6 +76,7 @@ public:
 	int		open_dongle(const char *lpsz_Devic);
 
 	void	send_dongle_initialization(void);//send control packets
+	void	get_dongle_version(char *prod_id, char *version_string);
 	void	close_dongle(void);
 
 	//moto-ambe 数据在进行解压之前，需要先将每一帧数据进行位变换，然后发送到dongle，dongle才能正常解压成PCM数据。反之亦然
@@ -86,7 +87,8 @@ public:
 	//设置串口接收到完整数据后的回调函数
 	void SetDongleRxDataCallBack(void(*Func)(void *ptr, short ptr_len));
 	
-	void send_any_ambe_to_dongle(void);
+	void send_any_ambe_to_dongle(void);//一般是整包文件
+	void send_pcm_msg_to_dongle(uint8_t *data_p);//分包发送
 
 private:
 
@@ -124,7 +126,7 @@ private:
 	int send_index; 
 	int recv_index;
 
-
+	DVSI3000struct m_dongle_control_frame_;
 
 	//AMBE-Queue
 	tAMBEFrame      m_AMBE_CirBuff[MAXDONGLEAMBEFRAMES];
@@ -135,6 +137,8 @@ private:
 	tPCMFrame       m_PCM_CirBuff[MAXDONGLEPCMFRAMES];
 	int             m_PCMBufHead;
 	int             m_PCMBufTail;
+
+
 
 	//Queue-flag
 	bool			m_bPleasePurgeAMBE;

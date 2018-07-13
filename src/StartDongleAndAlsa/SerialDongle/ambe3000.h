@@ -26,6 +26,10 @@ const    char AMBE3000_AMBE_NUMBYTES_BYTE  = (const char)0x07;
 const    char AMBE3000_CCP_TYPE_BYTE       = (const char)0x00;
 const    char AMBE3000_CCP_ECMODE	       = (const char)0x05;
 const    char AMBE3000_CCP_DCMODE          = (const char)0x06;
+
+const    char AMBE3000_CCP_PRODID_BYTE     = (const char)0x30;
+const    char AMBE3000_CCP_VERSTRING_BYTE  = (const char)0x31;
+
 const    char AMBE3000_CCP_MODE_LENGTHH    = (const char)0x00;
 const    char AMBE3000_CCP_MODE_LENGTHL    = (const char)0x05;
 const    char AMBE3000_CCP_MODE_NOISEH     = (const char)0x00;

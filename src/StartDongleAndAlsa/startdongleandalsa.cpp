@@ -1,4 +1,5 @@
 #include "startdongleandalsa.h"
+#include <dirent.h>  
 CStartDongleAndSound * CStartDongleAndSound::pThis = nullptr;
 
 CStartDongleAndSound::CStartDongleAndSound()
@@ -28,6 +29,8 @@ CStartDongleAndSound::CStartDongleAndSound()
 		/* 重新设置文件偏移量 */
 		lseek(pcm_voice_fd, 0, SEEK_SET);
 	}
+
+	enum_dongle();
 
 	log_info("New: CStartDongleAndSound\n");
 }
@@ -67,7 +70,6 @@ bool CStartDongleAndSound::start(const char *lpszDevice, const char *pcm_name)
 	m_new_dongle_ptr = new CSerialDongle;
 	if (m_new_dongle_ptr != nullptr){
 
-		dongle_map[lpszDevice] = m_new_dongle_ptr;//insert map
 		//result = m_new_dongle_ptr->open_dongle(lpszDevice, dongle_aio_completion_hander);
 		result = m_new_dongle_ptr->open_dongle(lpszDevice);
 		if (result != true)
@@ -78,6 +80,8 @@ bool CStartDongleAndSound::start(const char *lpszDevice, const char *pcm_name)
 		m_new_dongle_ptr->SetDongleRxDataCallBack(dongle_ondata_func);
 		log_info("open a new dongle okay\n");
 		m_new_dongle_ptr->send_dongle_initialization();
+
+		dongle_map[lpszDevice] = m_new_dongle_ptr;//insert map
 
 		timer();
 	}
@@ -348,6 +352,38 @@ void CStartDongleAndSound::dongle_ondata_func(void *ptr, short ptr_len)
 			}
 			//log_info("save pcm data okay.\n");
 		}
+	}
+
+}
+
+
+void CStartDongleAndSound::enum_dongle(const char *dev_path)
+{
+	DIR *Dir_p;
+	struct dirent *ent;
+	int i = 0;
+	char childpath[512] = { 0 };
+
+	Dir_p = opendir(dev_path);
+	while ((ent = readdir(Dir_p))!=NULL)
+	{
+		if (ent->d_type & DT_DIR)//目录
+		{
+			if (strcmp(ent->d_name, ".") == 0 || strcmp(ent->d_name, "..") == 0)
+				continue;
+
+			//sprintf(childpath, "%s/%s", dev_path, ent->d_name);
+		}
+		else//文件
+		{
+			std::string temp_str = ent->d_name;
+			auto  start_index = temp_str.find("ttyACM", 0);//"ttyACM"
+			if (start_index != string::npos) //hint:  here "string::npos"means find failed  
+			{
+				log_info("%s/%s \n", dev_path, temp_str.c_str());
+			}
+		}
+
 	}
 
 }

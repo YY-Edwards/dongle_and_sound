@@ -54,6 +54,8 @@ private:
 
 	static void timer_routine(union sigval v);
 
+	void enum_dongle(const char *dev_path="/dev");//dongle¿‰≤Â∞Œ
+
 };
 
 //void timer_routine(union sigval v);
