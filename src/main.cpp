@@ -87,7 +87,7 @@ static void extract_hotplug_info_func(hotplug_info_t *hpug_ptr)
 		else if (temp_ptr->action.compare(action_remove) == 0)
 		{
 			if (m_startdongle != nullptr){
-
+				log_warning("note:dongle disconnected...\n");
 				m_startdongle->pause_timer();
 				sleep(1);
 				m_startdongle->stop(temp_ptr->devname.c_str());

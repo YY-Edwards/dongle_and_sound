@@ -440,7 +440,7 @@ int CSerialDongle::SerialRxThreadFunc()
 			if ((ret = aio_error(&r_cbp)) != 0)//此处应该不会发生请求尚未完成的状态
 			{
 				log_info("qio_error() ret:%d", ret);
-				if (ret == -1)
+				if (ret == -1 || ret == EIO)
 				{
 					log_warning("qio_error() errno:%s\n", strerror(errno));
 					break;
@@ -492,7 +492,7 @@ int CSerialDongle::SerialRxThreadFunc()
 
 	} while (!m_PleaseStopSerial);
 
-	log_info("exit SerialRxThreadFunc: 0x%x\r\n", serial_rx_thread_p->GetPthreadID());
+	log_info("exit SerialRxThreadFunc: 0x%x \r\n", serial_rx_thread_p->GetPthreadID());
 	return ret;
 }
 void *CSerialDongle::SerialTxThread(void* p)//must be static since is thread
@@ -519,6 +519,7 @@ int CSerialDongle::SerialTxThreadFunc()
 	timeout.tv_nsec = 50* 1000 * 1000;//ms
 	aiocb_list[0] = &w_cbp;
 	int nwrited = 0;
+
 
 	do
 	{
@@ -612,7 +613,7 @@ int CSerialDongle::SerialTxThreadFunc()
 								break;
 
 							case -1://failure
-								log_info("aio write is failure, errno:%s\n", strerror(errno));
+								log_warning("aio write is failure, errno:%s\n", strerror(errno));
 								purge_dongle(m_wComm, TCOFLUSH);//刷新写入的数据
 								fWaitingOnWrite = false;
 								fWaitingOnPCM = false;
@@ -644,7 +645,15 @@ int CSerialDongle::SerialTxThreadFunc()
 								}
 
 								break;
+							case EIO://err
+								log_warning("note:I/O err!!! \n");
+								purge_dongle(m_wComm, TCOFLUSH);//刷新写入的数据
+								fWaitingOnWrite = false;
+								fWaitingOnPCM = false;
+								fWaitingOnAMBE = false;
+								break;
 							default:
+								log_warning("aio write ret:%d\n", aio_ret);
 								break;
 							}//end of aio_error() switch
 
@@ -661,7 +670,7 @@ int CSerialDongle::SerialTxThreadFunc()
 
 	} while (!m_PleaseStopSerial);
 
-	log_info("exit SerialTxThreadFunc: 0x%x\r\n", serial_tx_thread_p->GetPthreadID());
+	log_info("exit SerialTxThreadFunc: 0x%x \r\n", serial_tx_thread_p->GetPthreadID());
 	return ret;
 }
 
