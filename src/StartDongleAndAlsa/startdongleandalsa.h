@@ -32,7 +32,7 @@ private:
 
 	int pcm_voice_fd;
 	static void dongle_ondata_func(void *ptr, short ptr_len);
-	static void dongle_aio_completion_hander(int signo, siginfo_t *info, void *context);
+	//static void dongle_aio_completion_hander(int signo, siginfo_t *info, void *context);
 
 
 	char *voice_cache_ptr;

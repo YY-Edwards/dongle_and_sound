@@ -65,7 +65,7 @@ const int THEAMBEFRAMEFLDSAMPLESLENGTH = 7;
 class CSerialDongle  
 {
 
-	friend class CStartDongleAndSound;//申明友元类
+	//friend class CStartDongleAndSound;//申明友元类
 
 public:
 	CSerialDongle();

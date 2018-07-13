@@ -561,7 +561,7 @@ int CSerialDongle::SerialTxThreadFunc()
 				if (snapAMBEBufHead != m_AMBEBufTail){  //AMBE to send
 					fWaitingOnAMBE = true;
 					fWaitingOnWrite = true;
-					log_info("%s send ambe buff:\n", dongle_name.c_str());
+					//log_info("%s send ambe buff:\n", dongle_name.c_str());
 
 					do
 					{				
@@ -625,7 +625,7 @@ int CSerialDongle::SerialTxThreadFunc()
 								nwrited += aio_ret;
 								if (nwrited == AMBE3000_AMBE_BYTESINFRAME || nwrited == AMBE3000_PCM_BYTESINFRAME)
 								{
-									log_info("aio_write complete[.]\n");
+									//log_info("aio_write complete[.]\n");
 									nwrited = 0;//Successful Tx Complete.
 									if (fWaitingOnPCM == true){
 										m_PCMBufTail = (m_PCMBufTail + 1) & MAXDONGLEPCMFRAMESMASK;

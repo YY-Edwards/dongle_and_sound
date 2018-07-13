@@ -433,91 +433,91 @@ void CStartDongleAndSound::dongle_ondata_func(void *ptr, short ptr_len)
 //
 //}
 
-void CStartDongleAndSound::dongle_aio_completion_hander(int signo, siginfo_t *info, void *context)
-{
-
-	struct aiocb  *req = NULL;
-	CSerialDongle *this_ptr = NULL;
-
-	int           ret;
-	static int nwrited = 0;
-
-	if (info->si_signo == SIGIO)//确定是我们需要的信号
-	{
-		//log_info("w-signal code:%d\n", info->si_code); 
-		//获取aiocb 结构体的信息
-		//req = (struct aiocb*) info->si_value.sival_ptr;
-		this_ptr = (CSerialDongle *)info->si_value.sival_ptr;
-		req = &(this_ptr->w_cbp);
-
-		//if (req->aio_fildes == this_ptr->w_cbp.aio_fildes)//确定信号来自指定的文件描述符
-		{
-			/*AIO请求完成？*/
-			ret = aio_error(req);
-
-			//信号处理函数与主函数之间的死锁
-			//当主函数访问临界资源时，通常需要加锁，如果主函数在访问临界区时，给临界资源上锁，此时发生了一个信号，
-			//那么转入信号处理函数，如果此时信号处理函数也对临界资源进行访问，那么信号处理函数也会加锁，
-			//由于主程序持有锁，信号处理程序等待主程序释放锁。又因为信号处理函数已经抢占了主函数，
-			//因此，主函数在信号处理函数结束之前不能运行。因此，必然造成死锁。
-			/*信号处理相当于软中断，会暂停所有的线程执行*/
-			/**/
-			std::lock_guard<std::mutex> guard(this_ptr->m_aio_syn_mutex_);
-			log_info("\n\n");
-			//log_info("aio write status:%d\n", ret);
-			switch (ret)
-			{
-			case EINPROGRESS://working
-				log_info("aio write is EINPROGRESS.\n");
-				break;
-
-			case ECANCELED://cancelled
-				log_info("aio write is ECANCELLED.\n");
-				break;
-
-			case -1://failure
-				log_info("aio write is failure, errno:%s\n", strerror(errno));
-				this_ptr->purge_dongle(this_ptr->m_wComm, TCOFLUSH);//刷新写入的数据
-				break;
-
-			case 0://success
-
-				ret = aio_return(req);
-				log_info("fd:%d,[%s aio_write :%d bytes.]\n", req->aio_fildes, this_ptr->dongle_name.c_str(), ret);
-				nwrited += ret;
-				if (nwrited == AMBE3000_AMBE_BYTESINFRAME || nwrited == AMBE3000_PCM_BYTESINFRAME)
-				{
-					log_info("aio_write complete[.]\n");
-					nwrited = 0;//Successful Tx Complete.
-					if (this_ptr->fWaitingOnPCM == true){
-						this_ptr->m_PCMBufTail = (this_ptr->m_PCMBufTail + 1) & MAXDONGLEPCMFRAMESMASK;
-					}
-					if (this_ptr->fWaitingOnAMBE == true){
-						this_ptr->m_AMBEBufTail = (this_ptr->m_AMBEBufTail + 1) & MAXDONGLEAMBEFRAMESMASK;
-					}
-
-					this_ptr->fWaitingOnWrite = false;
-					this_ptr->fWaitingOnPCM = false;
-					this_ptr->fWaitingOnAMBE = false;
-
-					this_ptr->send_index++;
-					log_info("%s send ambe index:%d\n", this_ptr->dongle_name.c_str(), this_ptr->send_index);
-				}
-
-				break;
-			default:
-				break;
-			}
-		}
-		/*else
-		{
-			log_warning("note,other fd: %d \n", req->aio_fildes);
-		}*/
-	}
-	else
-	{
-		log_warning("note,other singal:%d \n", info->si_signo);
-	}
-
-
-}
+//void CStartDongleAndSound::dongle_aio_completion_hander(int signo, siginfo_t *info, void *context)
+//{
+//
+//	struct aiocb  *req = NULL;
+//	CSerialDongle *this_ptr = NULL;
+//
+//	int           ret;
+//	static int nwrited = 0;
+//
+//	if (info->si_signo == SIGIO)//确定是我们需要的信号
+//	{
+//		//log_info("w-signal code:%d\n", info->si_code); 
+//		//获取aiocb 结构体的信息
+//		//req = (struct aiocb*) info->si_value.sival_ptr;
+//		this_ptr = (CSerialDongle *)info->si_value.sival_ptr;
+//		req = &(this_ptr->w_cbp);
+//
+//		//if (req->aio_fildes == this_ptr->w_cbp.aio_fildes)//确定信号来自指定的文件描述符
+//		{
+//			/*AIO请求完成？*/
+//			ret = aio_error(req);
+//
+//			//信号处理函数与主函数之间的死锁
+//			//当主函数访问临界资源时，通常需要加锁，如果主函数在访问临界区时，给临界资源上锁，此时发生了一个信号，
+//			//那么转入信号处理函数，如果此时信号处理函数也对临界资源进行访问，那么信号处理函数也会加锁，
+//			//由于主程序持有锁，信号处理程序等待主程序释放锁。又因为信号处理函数已经抢占了主函数，
+//			//因此，主函数在信号处理函数结束之前不能运行。因此，必然造成死锁。
+//			/*信号处理相当于软中断，会暂停所有的线程执行*/
+//			/**/
+//			std::lock_guard<std::mutex> guard(this_ptr->m_aio_syn_mutex_);
+//			log_info("\n\n");
+//			//log_info("aio write status:%d\n", ret);
+//			switch (ret)
+//			{
+//			case EINPROGRESS://working
+//				log_info("aio write is EINPROGRESS.\n");
+//				break;
+//
+//			case ECANCELED://cancelled
+//				log_info("aio write is ECANCELLED.\n");
+//				break;
+//
+//			case -1://failure
+//				log_info("aio write is failure, errno:%s\n", strerror(errno));
+//				this_ptr->purge_dongle(this_ptr->m_wComm, TCOFLUSH);//刷新写入的数据
+//				break;
+//
+//			case 0://success
+//
+//				ret = aio_return(req);
+//				log_info("fd:%d,[%s aio_write :%d bytes.]\n", req->aio_fildes, this_ptr->dongle_name.c_str(), ret);
+//				nwrited += ret;
+//				if (nwrited == AMBE3000_AMBE_BYTESINFRAME || nwrited == AMBE3000_PCM_BYTESINFRAME)
+//				{
+//					log_info("aio_write complete[.]\n");
+//					nwrited = 0;//Successful Tx Complete.
+//					if (this_ptr->fWaitingOnPCM == true){
+//						this_ptr->m_PCMBufTail = (this_ptr->m_PCMBufTail + 1) & MAXDONGLEPCMFRAMESMASK;
+//					}
+//					if (this_ptr->fWaitingOnAMBE == true){
+//						this_ptr->m_AMBEBufTail = (this_ptr->m_AMBEBufTail + 1) & MAXDONGLEAMBEFRAMESMASK;
+//					}
+//
+//					this_ptr->fWaitingOnWrite = false;
+//					this_ptr->fWaitingOnPCM = false;
+//					this_ptr->fWaitingOnAMBE = false;
+//
+//					this_ptr->send_index++;
+//					log_info("%s send ambe index:%d\n", this_ptr->dongle_name.c_str(), this_ptr->send_index);
+//				}
+//
+//				break;
+//			default:
+//				break;
+//			}
+//		}
+//		/*else
+//		{
+//			log_warning("note,other fd: %d \n", req->aio_fildes);
+//		}*/
+//	}
+//	else
+//	{
+//		log_warning("note,other singal:%d \n", info->si_signo);
+//	}
+//
+//
+//}
