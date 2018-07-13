@@ -455,6 +455,7 @@ int CSerialDongle::SerialRxThreadFunc()
 					log_info("%s recv pcm:%d bytes\n", dongle_name.c_str(), read_nbytes);
 					//assemble:注意是同步解析。如需要异步，则用环形队列作缓冲。
 					AssembledCount = AssembleMsg(read_nbytes, &dwBytesConsumed);
+					usleep(1000);//1ms
 
 				}
 				else if (read_nbytes < 0)
@@ -800,7 +801,7 @@ void CSerialDongle::set_rx_serial_event()
 	if (rx_serial_event_cond != nullptr)
 	{
 		rx_serial_event_cond->CondTrigger(false);
-		log_info("timer set read event[:]\n");
+		//log_info("timer set read event[:]\n");
 	}
 
 }
