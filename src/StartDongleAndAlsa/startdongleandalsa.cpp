@@ -378,13 +378,16 @@ void CStartDongleAndSound::enum_dongle(const char *dev_path)
 			auto  start_index = temp_str.find("ttyACM", 0);//"ttyACM"
 			if (start_index != string::npos) //hint:  here "string::npos"means find failed  
 			{
-				log_info("find device:%s/%s \n", dev_path, temp_str.c_str());
+				//log_info("find device:%s/%s \n", dev_path, temp_str.c_str());
+				std::string dev_path_str = dev_path;
+				std::string device_str = dev_path_str + "/" + temp_str;
+				log_info("find device:%s \n", device_str.c_str());
 				bool result = false;
 				m_new_dongle_ptr = nullptr;
 				m_new_dongle_ptr = new CSerialDongle;
 				if (m_new_dongle_ptr != nullptr){
 
-					result = m_new_dongle_ptr->open_dongle(temp_str.c_str());
+					result = m_new_dongle_ptr->open_dongle(device_str.c_str(), false);
 					if (result != true)
 					{
 						log_warning("open device failure! \n");
@@ -402,11 +405,13 @@ void CStartDongleAndSound::enum_dongle(const char *dev_path)
 					{
 
 						m_new_dongle_ptr->SetDongleRxDataCallBack(dongle_ondata_func);
-						log_info("open a new dongle okay, id:%s, version:%s \n"product_id, version);
+						log_info("open a new dongle okay, id:%s, version:%s \n",product_id, version);
 						m_new_dongle_ptr->send_dongle_initialization();
 
-						dongle_map[temp_str.c_str()] = m_new_dongle_ptr;//insert map
-
+						{
+							std::lock_guard<std::mutex> guard(map_mutex_);
+							dongle_map[temp_str.c_str()] = m_new_dongle_ptr;//insert map
+						}
 						timer();
 					}
 				}
@@ -415,7 +420,7 @@ void CStartDongleAndSound::enum_dongle(const char *dev_path)
 		}
 
 	}
-	closedir(dev_path);
+	closedir(Dir_p);
 
 }
 

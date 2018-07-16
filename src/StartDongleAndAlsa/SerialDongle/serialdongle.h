@@ -73,7 +73,7 @@ public:
 
 	//Called from Dlg/User.
 	//int		open_dongle(const char *lpsz_Devic, void(*func_ptr)(int signo, siginfo_t *info, void *context));
-	int		open_dongle(const char *lpsz_Devic);
+	int		open_dongle(const char *lpsz_Devic, bool start_pthread = true);
 
 	void	send_dongle_initialization(void);//send control packets
 	short	get_dongle_version(char *prod_id, char *version_string);
@@ -108,6 +108,9 @@ private:
 
 	MySynCond *tx_serial_event_cond;
 	MySynCond *rx_serial_event_cond;
+
+	bool           m_serial_tx_thread_running_;
+	bool           m_serial_rx_thread_running_;
 
 	MyCreateThread * serial_tx_thread_p;
 	MyCreateThread * serial_rx_thread_p;

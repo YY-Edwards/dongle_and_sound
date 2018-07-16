@@ -29,6 +29,8 @@ CSerialDongle::CSerialDongle()
 	m_wComm = 0;
 	pcm_voice_fd = 0;
 	pThis = this;
+	m_serial_tx_thread_running_ = false;
+	m_serial_rx_thread_running_ = false;
 	log_info("New: CSerialDongle\n");
 }
 
@@ -39,7 +41,7 @@ CSerialDongle::~CSerialDongle()
 }
 
 //int	CSerialDongle::open_dongle(const char *lpsz_Device, void(*func_ptr)(int signo, siginfo_t *info, void *context))
-int	CSerialDongle::open_dongle(const char *lpsz_Device)
+int	CSerialDongle::open_dongle(const char *lpsz_Device, bool start_pthread)
 {
 	m_ParserState = FIND_START;
 	m_RxMsgLength = 0;
@@ -56,7 +58,7 @@ int	CSerialDongle::open_dongle(const char *lpsz_Device)
 	fWaitingOnAMBE = false;
 	dongle_name = lpsz_Device;
 
-	log_info("new dongle name:%s \n", dongle_name.c_str());
+	log_info("new device name:%s \n", dongle_name.c_str());
 	auto r_ret = m_usartwrap.init_usart_config(lpsz_Device, O_RDONLY | O_NOCTTY, DONGLEBAUDRATE, DONGLEBITS, DONGLESTOP, DONGLEPARITY);
 	auto w_ret = m_usartwrap.init_usart_config(lpsz_Device, O_WRONLY | O_NOCTTY, DONGLEBAUDRATE, DONGLEBITS, DONGLESTOP, DONGLEPARITY);
 	if ((r_ret<0) || (w_ret<0))
@@ -172,8 +174,12 @@ int	CSerialDongle::open_dongle(const char *lpsz_Device)
 	//reset_rx_serial_event();
 	//reset_tx_serial_event();
 
-	auto ret = CreateSerialRxThread();
-	ret = CreateSerialTxThread();
+	if (start_pthread == true)
+	{
+
+		auto ret = CreateSerialRxThread();
+		ret = CreateSerialTxThread();
+	}
 
 
 	//pcm_voice_fd = open("/opt/pcm.data", O_RDWR | O_APPEND | O_CREAT);
@@ -225,6 +231,9 @@ short  CSerialDongle::get_dongle_version(char *prod_id, char *version_string)
 	int counts = 0;
 	int nwrite = 0;
 	int nread = 0;
+	struct timespec timeout;
+	timeout.tv_sec = 0;
+	timeout.tv_nsec = 50 * 1000 * 1000;//ms
 
 	m_dongle_control_frame_.base.Sync = AMBE3000_SYNC_BYTE;
 	counts++;
@@ -243,7 +252,10 @@ short  CSerialDongle::get_dongle_version(char *prod_id, char *version_string)
 	m_dongle_control_frame_.base.empty[3] = CheckSum(&m_dongle_control_frame_);
 	counts++;
 
-	struct aiocb aiocb_read_t, aiocb_write_t, *aio_list[2];
+	struct aiocb aiocb_read_t, aiocb_write_t, *aio_list[3];
+	bzero((char*)aio_list, sizeof(aio_list));
+	bzero((char*)&aiocb_write_t, sizeof(aiocb_write_t));
+	bzero((char*)&aiocb_read_t, sizeof(aiocb_read_t));
 	//the write aiocb
 	aiocb_write_t.aio_fildes = m_wComm;
 	aiocb_write_t.aio_buf = &m_dongle_control_frame_;
@@ -260,12 +272,34 @@ short  CSerialDongle::get_dongle_version(char *prod_id, char *version_string)
 	aiocb_read_t.aio_offset = 0;
 	aiocb_read_t.aio_lio_opcode = LIO_READ;
 
-	bzero((char*)aio_list, sizeof(aio_list));
 
-	aio_list[0] = &aiocb_write_t;
-	aio_list[1] = &aiocb_read_t;
+	//auto aio_ret = aio_write(&aiocb_write_t);
+	//if (aio_ret < 0)
+	//{
+	//	log_warning("aio_write failed:%s\n", strerror(errno));
+	//	return -1;
+	//}
+	//else
+	//{
+	//	aio_list[0] = &aiocb_write_t;
+	//	//超时阻塞，直到请求完成才会继续执行后面的语句
+	//	aio_ret = aio_suspend((const struct aiocb* const*)aio_list, 1, &timeout);//50ms
+	//	if (aio_ret < 0)
+	//	{
+	//		log_warning("aio_suspend failed:%s\n", strerror(errno));
+	//		return -1;
+	//	}
+	//}
 
+
+	aio_list[0] = &aiocb_read_t;
+	aio_list[1] = &aiocb_write_t;
 	auto aio_ret = lio_listio(LIO_WAIT, aio_list, 2, NULL);
+	if (aio_ret != 0)
+	{
+		log_warning("lio_listio() ret:%d, errno:%d,%s\n", aio_ret, errno,strerror(errno));
+		return -1;
+	}
 
 	if ((aio_ret = aio_error(&aiocb_write_t)) != 0)//此处应该不会发生请求尚未完成的状态
 	{
@@ -280,13 +314,32 @@ short  CSerialDongle::get_dongle_version(char *prod_id, char *version_string)
 	{
 		aio_ret = aio_return(&aiocb_write_t);
 		nwrite += aio_ret;
-		log_info("aio write nbytes:%d \n", nwrite);
+		//log_info("aio write nbytes:%d \n", nwrite);
 		if (nwrite == counts)
 		{
 			nwrite = 0;
+			//bzero((char*)aio_list, sizeof(aio_list));
+			//auto aio_ret = aio_read(&aiocb_read_t);
+			//if (aio_ret<0)
+			//{
+			//	log_warning("aio_read failed:%s\n", strerror(errno));
+			//	return -1;
+			//}
+			//else
+			//{
+			//	aio_list[0] = &aiocb_read_t;
+			//	//超时阻塞，直到请求完成才会继续执行后面的语句
+			//	aio_ret = aio_suspend((const struct aiocb* const*)aio_list, 1, &timeout);//50ms
+			//	if (aio_ret < 0)
+			//	{
+			//		log_warning("aio_suspend failed:%s\n", strerror(errno));
+			//		return -1;
+			//	}
+			//}
+
 			if ((aio_ret = aio_error(&aiocb_read_t)) != 0)//此处应该不会发生请求尚未完成的状态
 			{
-				log_warning("read aio_error() ret:%d", aio_ret);
+				log_warning("read aio_error() ret:%d, %s", aio_ret, strerror(aio_ret));
 				if (aio_ret == -1 || aio_ret == EIO)
 				{
 					log_warning("qio_error() errno:%s\n", strerror(errno));
@@ -297,7 +350,7 @@ short  CSerialDongle::get_dongle_version(char *prod_id, char *version_string)
 			{
 				aio_ret = aio_return(&aiocb_read_t);
 				nread += aio_ret;
-				log_info("aio read nbytes:%d \n", nread);
+				//log_info("aio read nbytes:%d \n", nread);
 				char chk_header, chk_type, chk_field;
 				p = get_byte(p, &chk_header);
 				if (chk_header != AMBE3000_SYNC_BYTE)
@@ -327,6 +380,10 @@ short  CSerialDongle::get_dongle_version(char *prod_id, char *version_string)
 
 	delete[]aio_recv_ctl_buff;
 	aio_recv_ctl_buff = NULL; 
+
+	auto ret = CreateSerialRxThread();
+	ret = CreateSerialTxThread();
+	
 
 	return 0;
 
@@ -472,9 +529,13 @@ void CSerialDongle::purge_dongle(int com, int flags)
 
 int CSerialDongle::CreateSerialRxThread()
 {
-
+	if (m_serial_rx_thread_running_ == true)return 1;
 	serial_rx_thread_p = new MyCreateThread(SerialRxThread, this);
-	if (serial_rx_thread_p != nullptr)return 0;
+	if (serial_rx_thread_p != nullptr)
+	{
+		m_serial_rx_thread_running_ = true;
+		return 0;
+	}
 	else
 	{
 		return -1;
@@ -484,9 +545,13 @@ int CSerialDongle::CreateSerialRxThread()
 
 int CSerialDongle::CreateSerialTxThread()
 {
-
+	if (m_serial_tx_thread_running_ == true)return 1;
 	serial_tx_thread_p = new MyCreateThread(SerialTxThread, this);
-	if (serial_tx_thread_p != nullptr)return 0;
+	if (serial_tx_thread_p != nullptr)
+	{
+		m_serial_tx_thread_running_ = true;
+		return 0;
+	}
 	else
 	{
 		return -1;
@@ -501,6 +566,7 @@ void *CSerialDongle::SerialRxThread(void* p)//must be static since is thread
 	auto ret = 0;
 	if (obj!=NULL)
 		 ret = obj->SerialRxThreadFunc();
+	obj->m_serial_rx_thread_running_ = false;
 
 	return (void *)0;
 
@@ -618,7 +684,7 @@ void *CSerialDongle::SerialTxThread(void* p)//must be static since is thread
 	auto ret = 0;
 	if (obj != NULL)
 		ret = obj->SerialTxThreadFunc();
-
+	obj->m_serial_tx_thread_running_ = false;
 	return (void *)0;
 
 }
