@@ -76,7 +76,7 @@ public:
 	int		open_dongle(const char *lpsz_Devic);
 
 	void	send_dongle_initialization(void);//send control packets
-	void	get_dongle_version(char *prod_id, char *version_string);
+	short	get_dongle_version(char *prod_id, char *version_string);
 	void	close_dongle(void);
 
 	//moto-ambe 数据在进行解压之前，需要先将每一帧数据进行位变换，然后发送到dongle，dongle才能正常解压成PCM数据。反之亦然
@@ -208,6 +208,9 @@ private:
 	uint8_t thePCMFrameFldSamples[THEPCMFRAMEFLDSAMPLESLENGTH];
 	DynRingQueue *the_pcm_sample_queue_ptr;
 	CUsartWrap	m_usartwrap;
+	char * get_string(char *p, char *string);
+	char * get_byte(char *p, char *c);
+
 	
 	int pcm_voice_fd;
 

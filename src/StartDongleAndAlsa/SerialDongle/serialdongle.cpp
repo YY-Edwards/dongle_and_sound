@@ -217,22 +217,120 @@ void CSerialDongle::send_dongle_initialization(void)//send control packets
 
 }
 
-void  CSerialDongle::get_dongle_version(char *prod_id, char *version_string)
+short  CSerialDongle::get_dongle_version(char *prod_id, char *version_string)
 {
 
 
 	bool result;
+	int counts = 0;
+	int nwrite = 0;
+	int nread = 0;
 
 	m_dongle_control_frame_.base.Sync = AMBE3000_SYNC_BYTE;
+	counts++;
 	m_dongle_control_frame_.base.LengthH = 0x00;
+	counts++;
 	m_dongle_control_frame_.base.LengthL = 0x04;
+	counts++;
 	m_dongle_control_frame_.base.Type = AMBE3000_CCP_TYPE_BYTE;
+	counts++;
 	m_dongle_control_frame_.base.empty[0] = AMBE3000_CCP_PRODID_BYTE;
+	counts++;
 	m_dongle_control_frame_.base.empty[1] = AMBE3000_CCP_VERSTRING_BYTE;
+	counts++;
 	m_dongle_control_frame_.base.empty[2] = AMBE3000_PARITY_TYPE_BYTE;
+	counts++;
 	m_dongle_control_frame_.base.empty[3] = CheckSum(&m_dongle_control_frame_);
+	counts++;
 
-	result = SendDVSIMsg(&m_dongle_control_frame_);
+	struct aiocb aiocb_read_t, aiocb_write_t, *aio_list[2];
+	//the write aiocb
+	aiocb_write_t.aio_fildes = m_wComm;
+	aiocb_write_t.aio_buf = &m_dongle_control_frame_;
+	aiocb_write_t.aio_nbytes = counts;
+	aiocb_write_t.aio_offset = 0;
+	aiocb_write_t.aio_lio_opcode = LIO_WRITE;
+
+	//the read aiocb
+	char *aio_recv_ctl_buff = new char[AIO_BUFSIZE]();
+	char *p = aio_recv_ctl_buff;
+	aiocb_read_t.aio_fildes = m_rComm;
+	aiocb_read_t.aio_buf = aio_recv_ctl_buff;
+	aiocb_read_t.aio_nbytes = AIO_BUFSIZE;
+	aiocb_read_t.aio_offset = 0;
+	aiocb_read_t.aio_lio_opcode = LIO_READ;
+
+	bzero((char*)aio_list, sizeof(aio_list));
+
+	aio_list[0] = &aiocb_write_t;
+	aio_list[1] = &aiocb_read_t;
+
+	auto aio_ret = lio_listio(LIO_WAIT, aio_list, 2, NULL);
+
+	if ((aio_ret = aio_error(&aiocb_write_t)) != 0)//此处应该不会发生请求尚未完成的状态
+	{
+		log_warning("write aio_error() ret:%d", aio_ret);
+		if (aio_ret == -1 || aio_ret == EIO)
+		{
+			log_warning("qio_error() errno:%s\n", strerror(errno));
+			return -1;
+		}
+	}
+	else
+	{
+		aio_ret = aio_return(&aiocb_write_t);
+		nwrite += aio_ret;
+		log_info("aio write nbytes:%d \n", nwrite);
+		if (nwrite == counts)
+		{
+			nwrite = 0;
+			if ((aio_ret = aio_error(&aiocb_read_t)) != 0)//此处应该不会发生请求尚未完成的状态
+			{
+				log_warning("read aio_error() ret:%d", aio_ret);
+				if (aio_ret == -1 || aio_ret == EIO)
+				{
+					log_warning("qio_error() errno:%s\n", strerror(errno));
+					return -1;
+				}
+			}
+			else
+			{
+				aio_ret = aio_return(&aiocb_read_t);
+				nread += aio_ret;
+				log_info("aio read nbytes:%d \n", nread);
+				char chk_header, chk_type, chk_field;
+				p = get_byte(p, &chk_header);
+				if (chk_header != AMBE3000_SYNC_BYTE)
+					return -1;
+				p += 2; //skip len
+				p = get_byte(p, &chk_type);
+				if (chk_type != AMBE3000_CCP_TYPE_BYTE)
+					return -3;
+				p = get_byte(p, &chk_field);
+				if (chk_field != AMBE3000_CCP_PRODID_BYTE)
+					return -4;
+				p = get_string(p, prod_id);
+				p = get_byte(p, &chk_field);
+				if (chk_field != AMBE3000_CCP_VERSTRING_BYTE)
+					return -5;
+				p = get_string(p, version_string);
+
+			}
+		}
+		/*if (nwrite == counts)
+		{
+
+		}*/
+	}
+
+	
+
+	delete[]aio_recv_ctl_buff;
+	aio_recv_ctl_buff = NULL; 
+
+	return 0;
+
+	//result = SendDVSIMsg(&m_dongle_control_frame_);
 
 }
 
@@ -1113,12 +1211,28 @@ void CSerialDongle::ParseDVSImsg(DVSI3000struct* pMsg)
 
 		break;
 	case AMBE3000_CCP_TYPE_BYTE:
-	
+		log_info("recv control package: \n");
 		break;
 	}
 	
 }
 
+char * CSerialDongle::get_byte(char *p, char *c)
+{
+	*c = *p++;
+	return p;
+}
+
+char * CSerialDongle::get_string(char *p, char *string)
+{
+	char c;
+
+	do {
+		c = *string++ = *p++ & 0x00ff;
+	} while (c != 0);
+	return p;
+
+}
 
 
 void CSerialDongle::send_any_ambe_to_dongle(void)

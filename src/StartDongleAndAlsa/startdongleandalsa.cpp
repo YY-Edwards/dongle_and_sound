@@ -218,8 +218,6 @@ void CStartDongleAndSound::pause_timer()
 
 }
 
-
-
 void CStartDongleAndSound::timer()//用来定时(20ms)触发串口读，写数据，并将CSerialDongle对象句柄传入定时器信号处理函数中
 {
 	// XXX int timer_create(clockid_t clockid, struct sigevent *evp, timer_t *timerid);  
@@ -380,11 +378,44 @@ void CStartDongleAndSound::enum_dongle(const char *dev_path)
 			auto  start_index = temp_str.find("ttyACM", 0);//"ttyACM"
 			if (start_index != string::npos) //hint:  here "string::npos"means find failed  
 			{
-				log_info("%s/%s \n", dev_path, temp_str.c_str());
+				log_info("find device:%s/%s \n", dev_path, temp_str.c_str());
+				bool result = false;
+				m_new_dongle_ptr = nullptr;
+				m_new_dongle_ptr = new CSerialDongle;
+				if (m_new_dongle_ptr != nullptr){
+
+					result = m_new_dongle_ptr->open_dongle(temp_str.c_str());
+					if (result != true)
+					{
+						log_warning("open device failure! \n");
+						continue;
+					}
+					char product_id[100] = {0};
+					char version[200] = {0};
+					auto ret = m_new_dongle_ptr->get_dongle_version(product_id, version);
+					if (ret != 0)
+					{
+						log_warning("this is not dongle! \n");
+						continue;
+					}
+					else
+					{
+
+						m_new_dongle_ptr->SetDongleRxDataCallBack(dongle_ondata_func);
+						log_info("open a new dongle okay, id:%s, version:%s \n"product_id, version);
+						m_new_dongle_ptr->send_dongle_initialization();
+
+						dongle_map[temp_str.c_str()] = m_new_dongle_ptr;//insert map
+
+						timer();
+					}
+				}
+
 			}
 		}
 
 	}
+	closedir(dev_path);
 
 }
 
