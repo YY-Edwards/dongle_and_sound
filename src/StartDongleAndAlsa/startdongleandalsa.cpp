@@ -410,7 +410,7 @@ void CStartDongleAndSound::enum_dongle(const char *dev_path)
 
 						{
 							std::lock_guard<std::mutex> guard(map_mutex_);
-							dongle_map[temp_str.c_str()] = m_new_dongle_ptr;//insert map
+							dongle_map[device_str.c_str()] = m_new_dongle_ptr;//insert map
 						}
 						timer();
 					}
